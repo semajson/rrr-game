@@ -13,6 +13,8 @@ fn main() {
 
     let db = Arc::new(Database::new());
 
+    db.set("test".to_string(), "1".to_string());
+
     for stream in listener.incoming() {
         let stream = stream.unwrap();
         let db = Arc::clone(&db);

@@ -17,6 +17,7 @@ pub fn process_request(request: Vec<String>, db: Arc<Database>) -> String {
 
     let value = db.get("test");
     println!("Database value is {:}", value);
+    db.set("test".to_string(), value + "1");
 
     let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
     response

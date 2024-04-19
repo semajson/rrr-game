@@ -6,21 +6,23 @@ pub struct Database {
 }
 impl Database {
     pub fn new() -> Database {
-        let mut map = HashMap::new();
-        map.insert("test".to_string(), "1".to_string());
+        let map = HashMap::new();
         let map = Mutex::new(map);
         Database { map }
     }
 
     pub fn get(&self, key: &str) -> String {
-        // Todo - change this to be the proper get method
-        let mut map = self.map.lock().unwrap();
-        let value = map.get("test").unwrap().clone();
-        let new_value = value + "1";
-        map.insert("test".to_string(), new_value.clone());
-        new_value
+        let map = self.map.lock().unwrap();
+        map.get(key).unwrap().clone()
     }
-    // Todo - implement update / create (unsure if want different ones)
 
-    // Todo - implement remove
+    pub fn set(&self, key: String, value: String) {
+        let mut map = self.map.lock().unwrap();
+        map.insert(key, value);
+    }
+
+    pub fn del(&self, key: &str) {
+        let mut map = self.map.lock().unwrap();
+        map.remove(key);
+    }
 }
