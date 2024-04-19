@@ -1,16 +1,17 @@
 use rust_book_server_example::{process_request, Database, ThreadPool};
 use std::{
-    collections::HashMap,
     io::{prelude::*, BufReader},
     net::{TcpListener, TcpStream},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
     let pool = ThreadPool::new(4);
-    let db = Arc::new(Mutex::new(Database::new()));
+    // let db = Arc::new(Mutex::new(Database::new()));
+
+    let db = Arc::new(Database::new());
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -21,7 +22,7 @@ fn main() {
     }
 }
 
-fn handle_connection(mut stream: TcpStream, db: Arc<Mutex<Database>>) {
+fn handle_connection(mut stream: TcpStream, db: Arc<Database>) {
     let buf_reader = BufReader::new(&mut stream);
 
     let request = buf_reader

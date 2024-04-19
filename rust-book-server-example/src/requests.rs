@@ -1,16 +1,8 @@
-// mod database;
-// pub use database::Database;
-
-use std::{
-    fs,
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
+use std::{fs, sync::Arc, thread, time::Duration};
 
 use crate::Database;
 
-pub fn process_request(request: Vec<String>, db: Arc<Mutex<Database>>) -> String {
+pub fn process_request(request: Vec<String>, db: Arc<Database>) -> String {
     let (status_line, filename) = match request[0].as_ref() {
         "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
         "GET /sleep HTTP/1.1" => {
@@ -23,7 +15,6 @@ pub fn process_request(request: Vec<String>, db: Arc<Mutex<Database>>) -> String
     let contents = fs::read_to_string(filename).unwrap();
     let length = contents.len();
 
-    let mut db = db.lock().unwrap();
     let value = db.get("test");
     println!("Database value is {:}", value);
 
