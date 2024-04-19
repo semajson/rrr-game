@@ -1,29 +1,36 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-pub struct Database {
+pub trait Database {
+    fn get(&self, key: &str) -> String;
+    fn set(&self, key: String, value: String);
+    fn del(&self, key: &str);
+}
+
+pub struct LocalDatabase {
     map: Mutex<HashMap<String, String>>, // todo - shoud this be string?
 }
-impl Database {
-    pub fn new() -> Database {
+impl LocalDatabase {
+    pub fn new() -> LocalDatabase {
         let map = HashMap::new();
         let map = Mutex::new(map);
-        Database { map }
+        LocalDatabase { map }
     }
-
-    pub fn get(&self, key: &str) -> String {
+}
+impl Database for LocalDatabase {
+    fn get(&self, key: &str) -> String {
         let map = self.map.lock().unwrap();
         // Todo - handle the unwrap better.
         // probaly return option and have the calling code deal with the error as required
         map.get(key).unwrap().clone()
     }
 
-    pub fn set(&self, key: String, value: String) {
+    fn set(&self, key: String, value: String) {
         let mut map = self.map.lock().unwrap();
         map.insert(key, value);
     }
 
-    pub fn del(&self, key: &str) {
+    fn del(&self, key: &str) {
         let mut map = self.map.lock().unwrap();
         map.remove(key);
     }

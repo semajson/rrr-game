@@ -5,4 +5,4 @@ mod requests;
 pub use requests::process_request;
 
 mod database;
-pub use database::Database;
+pub use database::{Database, LocalDatabase};

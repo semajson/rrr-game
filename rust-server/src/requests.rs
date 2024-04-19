@@ -2,7 +2,7 @@ use std::{fs, sync::Arc, thread, time::Duration};
 
 use crate::Database;
 
-pub fn process_request(request: Vec<String>, db: Arc<Database>) -> String {
+pub fn process_request(request: Vec<String>, db: Arc<impl Database>) -> String {
     let (status_line, filename) = match request[0].as_ref() {
         "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
         "GET /sleep HTTP/1.1" => {

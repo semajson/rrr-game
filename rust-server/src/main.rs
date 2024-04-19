@@ -1,4 +1,4 @@
-use rust_book_server_example::{process_request, Database, ThreadPool};
+use rust_book_server_example::{process_request, Database, LocalDatabase, ThreadPool};
 use std::{
     io::{prelude::*, BufReader},
     net::{TcpListener, TcpStream},
@@ -8,7 +8,7 @@ use std::{
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
-    let db = Arc::new(Database::new());
+    let db = Arc::new(LocalDatabase::new());
 
     db.set("test".to_string(), "1".to_string());
 
@@ -21,7 +21,7 @@ fn main() {
     }
 }
 
-fn handle_connection(mut stream: TcpStream, db: Arc<Database>) {
+fn handle_connection(mut stream: TcpStream, db: Arc<impl Database>) {
     let buf_reader = BufReader::new(&mut stream);
 
     let request = buf_reader
