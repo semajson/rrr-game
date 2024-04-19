@@ -7,10 +7,7 @@ use std::{
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-
     let pool = ThreadPool::new(4);
-    // let db = Arc::new(Mutex::new(Database::new()));
-
     let db = Arc::new(Database::new());
 
     db.set("test".to_string(), "1".to_string());

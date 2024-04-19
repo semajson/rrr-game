@@ -13,6 +13,8 @@ impl Database {
 
     pub fn get(&self, key: &str) -> String {
         let map = self.map.lock().unwrap();
+        // Todo - handle the unwrap better.
+        // probaly return option and have the calling code deal with the error as required
         map.get(key).unwrap().clone()
     }
 
