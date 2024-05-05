@@ -29,6 +29,7 @@ fn handle_connection(mut stream: TcpStream, db: Arc<impl Database>) {
         .map(|result| result.unwrap())
         .take_while(|line| !line.is_empty())
         .collect();
+    // let request = buf_reader.lines().map(|result| result.unwrap()).collect();
 
     let response = process_request(request, db);
 
