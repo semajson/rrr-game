@@ -1,4 +1,5 @@
 use rust_book_server_example::{process_request, Database, LocalDatabase, ThreadPool};
+use std::str;
 use std::{
     io::{prelude::*, BufReader},
     net::{TcpListener, TcpStream},
@@ -22,14 +23,15 @@ fn main() {
 }
 
 fn handle_connection(mut stream: TcpStream, db: Arc<impl Database>) {
-    let buf_reader = BufReader::new(&mut stream);
+    // let mut buf_reader = BufReader::new(&mut stream);
+    // Todo, workout when should use buf reader ? buffer
+    // TODO - how does this work in rust and buffers TCP generally
 
-    let request = buf_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
-    // let request = buf_reader.lines().map(|result| result.unwrap()).collect();
+    let mut buffer = [0; 1024];
+    stream.read(&mut buffer).unwrap();
+    let request = str::from_utf8(&buffer).unwrap();
+    let end = request.find('\0').unwrap();
+    let request = request[..end].to_string();
 
     let response = process_request(request, db);
 
