@@ -30,6 +30,10 @@ fn handle_connection(mut stream: TcpStream, db: Arc<impl Database>) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).unwrap();
     let request = str::from_utf8(&buffer).unwrap();
+
+    // Note, this is a hack and isn't complying with the HTTP spec
+    // https://www.rfc-editor.org/rfc/rfc9112#name-message-body-length
+    // Should be looking at the content-length instead
     let end = request.find('\0').unwrap();
     let request = request[..end].to_string();
 
