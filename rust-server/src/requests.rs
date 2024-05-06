@@ -36,16 +36,14 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
             "HTTP/1.1 404 NOT FOUND",
             fs::read_to_string("404.html").unwrap(),
         );
+        let not_implemented = ("HTTP/1.1 501 Not Implemented", "".to_string());
 
         // Sessions
         if valid_request.root == SESSIONS {
             if valid_request.method == POST {
-                ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                not_implemented
             } else if valid_request.method == DELETE {
-                (
-                    "HTTP/1.1 501 Not Implemented",
-                    fs::read_to_string("hello.html").unwrap(),
-                )
+                not_implemented
             } else {
                 not_found
             }
@@ -54,16 +52,17 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
         else if valid_request.root == USERS {
             if let Some(user_id) = valid_request.item {
                 if valid_request.method == GET {
-                    ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                    // ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                    not_implemented
                 } else if valid_request.method == POST {
-                    ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                    not_implemented
                 } else if valid_request.method == DELETE {
-                    ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                    not_implemented
                 } else {
                     not_found
                 }
             } else if valid_request.method == POST {
-                ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                not_implemented
             } else {
                 not_found
             }
@@ -95,9 +94,6 @@ struct Request {
 
 impl Request {
     fn new(request: String) -> Option<Request> {
-        // println!("js9");
-        // println!("{:?}", request);
-
         let request = request
             .lines()
             .map(|x| x.to_string())
@@ -147,7 +143,6 @@ impl Request {
                 headers,
                 body,
             };
-            // println!("{:?}", request);
 
             Some(request)
         } else {

@@ -31,8 +31,6 @@ fn parse_response(response: String) -> Response {
     )
     .unwrap();
 
-    println!("{:?}", re.captures_iter(&response).count());
-
     assert_eq!(re.captures_iter(&response).count(), 1);
 
     let captures = re.captures_iter(&response);
@@ -71,7 +69,7 @@ fn create_user_and_login() {
     // Verify create user
     assert_eq!(response.status_code, 200);
     assert_eq!(response.body, "");
-    // assert!(db.get("test") == "expected".to_string());
+    assert!(db.get("test") == "expected".to_string());
 
     // Successful login
     // println!("{:?}", response);
