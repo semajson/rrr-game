@@ -31,7 +31,7 @@ const SESSIONS: &str = "/sessions";
 pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     let request = Request::new(request);
 
-    let (rsp, rsp_body) = if let Some(valid_request) = request {
+    let (rsp_status, rsp_body) = if let Some(valid_request) = request {
         let not_found = (
             "HTTP/1.1 404 NOT FOUND",
             fs::read_to_string("404.html").unwrap(),
@@ -79,7 +79,7 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     };
 
     let length = rsp_body.len();
-    let response = format!("{rsp_}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
+    let response = format!("{rsp_status}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
     response
 }
 
@@ -95,6 +95,9 @@ struct Request {
 
 impl Request {
     fn new(request: String) -> Option<Request> {
+        // println!("js9");
+        // println!("{:?}", request);
+
         let request = request
             .lines()
             .map(|x| x.to_string())
@@ -144,7 +147,7 @@ impl Request {
                 headers,
                 body,
             };
-            println!("{:?}", request);
+            // println!("{:?}", request);
 
             Some(request)
         } else {
