@@ -1,26 +1,7 @@
 use regex::{Match, Regex};
 use std::{fs, sync::Arc};
 
-use crate::Database;
-
-// No auth
-// let (, body) = match (method, root) {
-//     "GET /test HTTP/1.1" => ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap()),
-//     "POST /session HTTP/1.1" => ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap()),
-//     "POST /users HTTP/1.1" => ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap()),
-//     "GET /users/<User ID> HTTP/1.1" => {
-//         ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
-//     }
-//     "DELETE /users/<User ID> HTTP/1.1" => {
-//         ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
-//     }
-
-//     "POST /session HTTP/1.1" => ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap()),
-//     _ => (
-//         "HTTP/1.1 404 NOT FOUND",
-//         fs::read_to_string("404.html").unwrap(),
-//     ),
-// };
+use crate::{users, Database};
 
 const GET: &str = "GET";
 const POST: &str = "POST";
@@ -32,47 +13,11 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     let request = Request::new(request);
 
     let (rsp_status, rsp_body) = if let Some(valid_request) = request {
-        let not_found = (
-            "HTTP/1.1 404 NOT FOUND",
-            fs::read_to_string("404.html").unwrap(),
-        );
-        let not_implemented = ("HTTP/1.1 501 Not Implemented", "".to_string());
-
-        // Sessions
-        if valid_request.root == SESSIONS {
-            if valid_request.method == POST {
-                not_implemented
-            } else if valid_request.method == DELETE {
-                not_implemented
-            } else {
-                not_found
-            }
-        }
-        // Users
-        else if valid_request.root == USERS {
-            if let Some(user_id) = valid_request.item {
-                if valid_request.method == GET {
-                    // ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
-                    not_implemented
-                } else if valid_request.method == POST {
-                    not_implemented
-                } else if valid_request.method == DELETE {
-                    not_implemented
-                } else {
-                    not_found
-                }
-            } else if valid_request.method == POST {
-                not_implemented
-            } else {
-                not_found
-            }
-        } else {
-            not_found
-        }
+        process_valid_request(valid_request, db)
     } else {
         // Maybe just drop this?
         (
-            "HTTP/1.1 400 Bad request",
+            "HTTP/1.1 400 Bad request".to_string(),
             fs::read_to_string("404.html").unwrap(),
         )
     };
@@ -82,6 +27,62 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     response
 }
 
+fn process_valid_request(valid_request: Request, db: Arc<impl Database>) -> (String, String) {
+    let not_found = (
+        "HTTP/1.1 404 NOT FOUND".to_string(),
+        fs::read_to_string("404.html").unwrap(),
+    );
+    let not_implemented = ("HTTP/1.1 501 Not Implemented".to_string(), "".to_string());
+
+    // Routes with no auth
+
+    // Sessions
+    if valid_request.root == SESSIONS && valid_request.item == None {
+        if valid_request.method == POST {
+            return not_implemented;
+        }
+    } else if valid_request.root == USERS && valid_request.item == None {
+        if valid_request.method == POST {
+            let rq: users::CreateUserRq = serde_json::from_str(&valid_request.body).unwrap();
+            users::create_user(rq, db);
+
+            return not_implemented;
+        }
+    }
+
+    // Auth check
+
+    // Routes with auth - if no matches here then return error
+
+    // Sessions
+    if valid_request.root == SESSIONS {
+        if valid_request.method == DELETE {
+            not_implemented
+        } else {
+            not_found
+        }
+    }
+    // Users
+    else if valid_request.root == USERS {
+        if let Some(user_id) = valid_request.item {
+            if valid_request.method == GET {
+                // ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
+                not_implemented
+            } else if valid_request.method == POST {
+                not_implemented
+            } else if valid_request.method == DELETE {
+                not_implemented
+            } else {
+                not_found
+            }
+        } else {
+            not_found
+        }
+    } else {
+        not_found
+    }
+}
+
 #[derive(Debug)]
 struct Request {
     method: String,
@@ -89,7 +90,7 @@ struct Request {
     id: Option<String>,
     item: Option<String>,
     headers: Vec<String>,
-    body: Vec<String>,
+    body: String,
 }
 
 impl Request {
@@ -103,7 +104,7 @@ impl Request {
         // e.g. pares the request line first, and it it doesn't match, then bail
         let mut request_line = "".to_string();
         let mut headers = vec![];
-        let mut body = vec![];
+        let mut body = "".to_string();
         let mut in_body = false;
         for (index, line) in request.into_iter().enumerate() {
             if index == 0 {
@@ -111,7 +112,7 @@ impl Request {
             } else if line.is_empty() {
                 in_body = true
             } else if in_body {
-                body.push(line);
+                body.push_str(&line);
             } else {
                 headers.push(line);
             }

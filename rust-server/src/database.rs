@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 pub trait Database {
-    fn get(&self, key: &str) -> String;
+    fn get(&self, key: &str) -> Option<String>;
     fn set(&self, key: String, value: String);
     fn del(&self, key: &str);
 }
@@ -18,11 +18,11 @@ impl LocalDatabase {
     }
 }
 impl Database for LocalDatabase {
-    fn get(&self, key: &str) -> String {
+    fn get(&self, key: &str) -> Option<String> {
         let map = self.map.lock().unwrap();
         // Todo - handle the unwrap better.
         // probaly return option and have the calling code deal with the error as required
-        map.get(key).unwrap().clone()
+        map.get(key).cloned()
     }
 
     fn set(&self, key: String, value: String) {

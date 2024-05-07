@@ -62,7 +62,11 @@ fn create_user_and_login() {
     let db = Arc::new(LocalDatabase::new());
 
     // Create user
-    let request = build_request("POST", "/users", "");
+    let request = build_request(
+        "POST",
+        "/users",
+        "{\"username\":\"james\", \"email\":\"james@gmail.com\", \"password\":\"testpassword\"}",
+    );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
 
@@ -71,19 +75,22 @@ fn create_user_and_login() {
     assert_eq!(response.body, "");
     assert!(db.get("test") == "expected".to_string());
 
+    // Invalid create user request
+
+    // Verify failed
+
     // Successful login
     // println!("{:?}", response);
 
-    // Verify passed
+    // Verify login succeeded
 
     // Unsuccessful login
 
-    // Verify failed
+    // Verify login failed
 }
 
 // todo
-// login existing user
 // get user info
 // update user info
 // delete user
-// logout - todo
+// logout
