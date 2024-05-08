@@ -9,6 +9,17 @@ const DELETE: &str = "DELETE";
 const USERS: &str = "/users";
 const SESSIONS: &str = "/sessions";
 
+#[derive(Debug)]
+pub enum HttpErrorCode {
+    Error404BadRequest,
+    Error401Unauthorized,
+    Error403Forbidden,
+    Error404NotFround,
+    Error409Conflict,
+}
+
+// struct Http
+
 pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     let request = Request::new(request);
 
@@ -43,8 +54,7 @@ fn process_valid_request(valid_request: Request, db: Arc<impl Database>) -> (Str
         }
     } else if valid_request.root == USERS && valid_request.item == None {
         if valid_request.method == POST {
-            let rq: users::CreateUserRq = serde_json::from_str(&valid_request.body).unwrap();
-            users::create_user(rq, db);
+            users::create_user(valid_request.body, db);
 
             return not_implemented;
         }

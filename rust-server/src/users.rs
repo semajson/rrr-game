@@ -1,19 +1,49 @@
-use crate::{users, Database};
+use crate::{requests::HttpErrorCode, users, Database};
+use argon2::{
+    password_hash::{rand_core, PasswordHash, PasswordHasher, SaltString},
+    Argon2,
+};
+
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
 use std::{fs, sync::Arc};
 
 #[derive(Serialize, Deserialize)]
-pub struct CreateUserRq {
+struct CreateUserRq {
     username: String,
     email: String,
     password: String,
 }
 
-pub fn create_user(createUserRq: CreateUserRq, db: Arc<impl Database>) -> bool {
-    if let Some(_) = db.get(&createUserRq.username) {
-        return false;
+#[derive(Serialize, Deserialize)]
+struct UserEntry {
+    email: String,
+    hash: String,
+    salt: String,
+}
+
+pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpErrorCode> {
+    let rq: users::CreateUserRq = serde_json::from_str(&body).unwrap();
+
+    if let Some(_) = db.get(&rq.username) {
+        // User already exists in the db
+        return Err(HttpErrorCode::Error409Conflict);
     }
 
-    true
+    // Reference https://docs.rs/argon2/latest/argon2/
+    let salt: SaltString = SaltString::generate(&mut rand_core::OsRng);
+    let argon2 = Argon2::default();
+    let hash = argon2
+        .hash_password(&rq.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+
+    let user_entry = UserEntry {
+        email: rq.email,
+        hash,
+        salt: salt.to_string(), // Js9 - not sure this is right way to store salt
+    };
+
+    db.set(rq.username, serde_json::to_string(&user_entry).unwrap());
+
+    Ok("token".to_string())
 }

@@ -73,7 +73,7 @@ fn create_user_and_login() {
     // Verify create user
     assert_eq!(response.status_code, 200);
     assert_eq!(response.body, "");
-    assert!(db.get("test") == "expected".to_string());
+    assert!(db.get("test") == Some("expected".to_string()));
 
     // Invalid create user request
 
