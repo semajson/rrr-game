@@ -31,7 +31,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
         // User already exists in the db
         return Err(HttpError {
             code: HttpErrorCode::Error409Conflict,
-            message: "User already exists in db".to_string(),
+            message: "User already exists.".to_string(), // Todo, make this json
         });
     }
 

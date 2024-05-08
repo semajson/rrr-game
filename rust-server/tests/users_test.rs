@@ -58,7 +58,7 @@ struct Response {
 }
 
 #[test]
-fn create_user_and_login() {
+fn create_user() {
     let db = Arc::new(LocalDatabase::new());
 
     // Create user
@@ -78,16 +78,17 @@ fn create_user_and_login() {
     // Invalid create user request
 
     // Verify failed
-
-    // Successful login
-    // println!("{:?}", response);
-
-    // Verify login succeeded
-
-    // Unsuccessful login
-
-    // Verify login failed
 }
+
+// login test
+// Successful login
+// println!("{:?}", response);
+
+// Verify login succeeded
+
+// Unsuccessful login
+
+// Verify login failed
 
 // todo
 // get user info
