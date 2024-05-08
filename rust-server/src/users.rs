@@ -1,4 +1,7 @@
-use crate::{requests::HttpErrorCode, users, Database};
+use crate::{
+    requests::{HttpError, HttpErrorCode},
+    users, Database,
+};
 use argon2::{
     password_hash::{rand_core, PasswordHash, PasswordHasher, SaltString},
     Argon2,
@@ -21,12 +24,15 @@ struct UserEntry {
     salt: String,
 }
 
-pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpErrorCode> {
+pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpError> {
     let rq: users::CreateUserRq = serde_json::from_str(&body).unwrap();
 
     if let Some(_) = db.get(&rq.username) {
         // User already exists in the db
-        return Err(HttpErrorCode::Error409Conflict);
+        return Err(HttpError {
+            code: HttpErrorCode::Error409Conflict,
+            message: "User already exists in db".to_string(),
+        });
     }
 
     // Reference https://docs.rs/argon2/latest/argon2/

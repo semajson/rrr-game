@@ -11,52 +11,74 @@ const SESSIONS: &str = "/sessions";
 
 #[derive(Debug)]
 pub enum HttpErrorCode {
-    Error404BadRequest,
+    Error400BadRequest,
     Error401Unauthorized,
     Error403Forbidden,
     Error404NotFround,
     Error409Conflict,
+    Error501NotImplemented,
 }
 
-// struct Http
+#[derive(Debug)]
+pub struct HttpError {
+    pub code: HttpErrorCode,
+    pub message: String,
+}
 
 pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     let request = Request::new(request);
 
-    let (rsp_status, rsp_body) = if let Some(valid_request) = request {
+    let response = if let Some(valid_request) = request {
         process_valid_request(valid_request, db)
     } else {
         // Maybe just drop this?
-        (
-            "HTTP/1.1 400 Bad request".to_string(),
-            fs::read_to_string("404.html").unwrap(),
-        )
+        Err(HttpError {
+            code: HttpErrorCode::Error400BadRequest,
+            message: "Request is not a valid HTTP request".to_string(),
+        })
+    };
+
+    let (rsp_status, rsp_body) = match response {
+        Ok(body) => ("200 OK", body),
+        Err(error) => match error.code {
+            HttpErrorCode::Error400BadRequest => ("400 Bad request", error.message),
+            HttpErrorCode::Error401Unauthorized => ("401 Unauthorized", error.message),
+            HttpErrorCode::Error403Forbidden => ("403 Forbidden", error.message),
+            HttpErrorCode::Error404NotFround => ("404 Not found", error.message),
+            HttpErrorCode::Error409Conflict => ("409 Conflict", error.message),
+            HttpErrorCode::Error501NotImplemented => ("501 Not implemented", error.message),
+        },
     };
 
     let length = rsp_body.len();
-    let response = format!("{rsp_status}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
+    let response = format!("HTTP/1.1 {rsp_status}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
     response
 }
 
-fn process_valid_request(valid_request: Request, db: Arc<impl Database>) -> (String, String) {
-    let not_found = (
-        "HTTP/1.1 404 NOT FOUND".to_string(),
-        fs::read_to_string("404.html").unwrap(),
-    );
-    let not_implemented = ("HTTP/1.1 501 Not Implemented".to_string(), "".to_string());
+fn process_valid_request(
+    valid_request: Request,
+    db: Arc<impl Database>,
+) -> Result<String, HttpError> {
+    let not_found_error = Err(HttpError {
+        code: HttpErrorCode::Error404NotFround,
+        message: "Route not found".to_string(),
+    });
+
+    let not_implemented_error = Err(HttpError {
+        code: HttpErrorCode::Error501NotImplemented,
+        message: "Method not implemented for route".to_string(),
+    });
 
     // Routes with no auth
 
     // Sessions
     if valid_request.root == SESSIONS && valid_request.item == None {
         if valid_request.method == POST {
-            return not_implemented;
+            return not_implemented_error;
         }
     } else if valid_request.root == USERS && valid_request.item == None {
         if valid_request.method == POST {
-            users::create_user(valid_request.body, db);
-
-            return not_implemented;
+            return users::create_user(valid_request.body, db);
         }
     }
 
@@ -67,9 +89,9 @@ fn process_valid_request(valid_request: Request, db: Arc<impl Database>) -> (Str
     // Sessions
     if valid_request.root == SESSIONS {
         if valid_request.method == DELETE {
-            not_implemented
+            not_implemented_error
         } else {
-            not_found
+            not_found_error
         }
     }
     // Users
@@ -77,19 +99,19 @@ fn process_valid_request(valid_request: Request, db: Arc<impl Database>) -> (Str
         if let Some(user_id) = valid_request.item {
             if valid_request.method == GET {
                 // ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
-                not_implemented
+                not_implemented_error
             } else if valid_request.method == POST {
-                not_implemented
+                not_implemented_error
             } else if valid_request.method == DELETE {
-                not_implemented
+                not_implemented_error
             } else {
-                not_found
+                not_found_error
             }
         } else {
-            not_found
+            not_found_error
         }
     } else {
-        not_found
+        not_found_error
     }
 }
 
