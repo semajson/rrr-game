@@ -25,9 +25,9 @@ struct UserEntry {
 }
 
 pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpError> {
-    let rq: users::CreateUserRq = serde_json::from_str(&body).unwrap();
+    let body: users::CreateUserRq = serde_json::from_str(&body).unwrap();
 
-    if let Some(_) = db.get(&rq.username) {
+    if let Some(_) = db.get(&body.username) {
         // User already exists in the db
         return Err(HttpError {
             code: HttpErrorCode::Error409Conflict,
@@ -39,17 +39,17 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
     let salt: SaltString = SaltString::generate(&mut rand_core::OsRng);
     let argon2 = Argon2::default();
     let hash = argon2
-        .hash_password(&rq.password.as_bytes(), &salt)
+        .hash_password(&body.password.as_bytes(), &salt)
         .unwrap()
         .to_string();
 
     let user_entry = UserEntry {
-        email: rq.email,
+        email: body.email,
         hash,
         salt: salt.to_string(), // Js9 - not sure this is right way to store salt
     };
 
-    db.set(rq.username, serde_json::to_string(&user_entry).unwrap());
+    db.set(body.username, serde_json::to_string(&user_entry).unwrap());
 
     Ok("token".to_string())
 }
