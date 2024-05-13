@@ -25,7 +25,14 @@ struct UserEntry {
 }
 
 pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpError> {
-    let body: users::CreateUserRq = serde_json::from_str(&body).unwrap();
+    let body: users::CreateUserRq = if let Ok(valid_body) = serde_json::from_str(&body) {
+        valid_body
+    } else {
+        return Err(HttpError {
+            code: HttpErrorCode::Error400BadRequest,
+            message: "Request body has invalid format.".to_string(), // Todo, make this json
+        });
+    };
 
     if let Some(_) = db.get(&body.username) {
         // User already exists in the db

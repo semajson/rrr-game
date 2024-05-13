@@ -1,7 +1,7 @@
-use regex::{Match, Regex};
-use std::{fs, sync::Arc};
-
 use crate::{users, Database};
+use regex::{Match, Regex};
+use serde::{Deserialize, Serialize};
+use std::{fs, sync::Arc};
 
 const GET: &str = "GET";
 const POST: &str = "POST";
@@ -40,19 +40,32 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
 
     let (rsp_status, rsp_body) = match response {
         Ok(body) => ("200 OK", body),
-        Err(error) => match error.code {
-            HttpErrorCode::Error400BadRequest => ("400 Bad request", error.message),
-            HttpErrorCode::Error401Unauthorized => ("401 Unauthorized", error.message),
-            HttpErrorCode::Error403Forbidden => ("403 Forbidden", error.message),
-            HttpErrorCode::Error404NotFround => ("404 Not found", error.message),
-            HttpErrorCode::Error409Conflict => ("409 Conflict", error.message),
-            HttpErrorCode::Error501NotImplemented => ("501 Not implemented", error.message),
-        },
+        Err(error) => {
+            let error_body = error_body(error.message);
+            match error.code {
+                HttpErrorCode::Error400BadRequest => ("400 Bad request", error_body),
+                HttpErrorCode::Error401Unauthorized => ("401 Unauthorized", error_body),
+                HttpErrorCode::Error403Forbidden => ("403 Forbidden", error_body),
+                HttpErrorCode::Error404NotFround => ("404 Not found", error_body),
+                HttpErrorCode::Error409Conflict => ("409 Conflict", error_body),
+                HttpErrorCode::Error501NotImplemented => ("501 Not implemented", error_body),
+            }
+        }
     };
 
     let length = rsp_body.len();
     let response = format!("HTTP/1.1 {rsp_status}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
     response
+}
+
+#[derive(Serialize, Deserialize)]
+struct ErrorMsg {
+    error_message: String,
+}
+
+fn error_body(error_message: String) -> String {
+    let error_body = ErrorMsg { error_message };
+    serde_json::to_string(&error_body).unwrap()
 }
 
 fn process_valid_request(

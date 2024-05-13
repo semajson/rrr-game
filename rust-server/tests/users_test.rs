@@ -23,6 +23,12 @@ Content-Length: {body_length}\r
 
     request
 }
+
+struct Response {
+    status_code: u32,
+    body: String,
+}
+
 fn parse_response(response: String) -> Response {
     println!("{:?}", response);
     println!("");
@@ -52,32 +58,64 @@ fn parse_response(response: String) -> Response {
     Response { status_code, body }
 }
 
-struct Response {
-    status_code: u32,
-    body: String,
+pub struct User {
+    username: String,
+    email: String,
+    password: String,
+}
+
+fn test_users() -> (User, User) {
+    let user1: User = User {
+        username: "james".to_string(),
+        email: "james@gmail.com".to_string(),
+        password: "testpassword".to_string(),
+    };
+
+    let user2: User = User {
+        username: "alex".to_string(),
+        email: "alex@hotmail.com".to_string(),
+        password: "passwordtest".to_string(),
+    };
+
+    (user1, user2)
 }
 
 #[test]
 fn create_user() {
     let db = Arc::new(LocalDatabase::new());
+    let (user1, user2) = test_users();
 
     // Create user
     let request = build_request(
         "POST",
         "/users",
-        "{\"username\":\"james\", \"email\":\"james@gmail.com\", \"password\":\"testpassword\"}",
+        &format!(
+            "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
+            user1.username, user1.email, user1.password
+        ),
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
 
     // Verify create user
     assert_eq!(response.status_code, 200);
-    assert_eq!(response.body, "");
-    assert!(db.get("test") == Some("expected".to_string()));
+    assert_ne!(db.get(&user1.username), None);
 
-    // Invalid create user request
+    // Invalid create user request - bad body
+    let request = build_request(
+        "POST",
+        "/users",
+        &format!(
+            "{{\"username_blah_blah\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
+            user2.username, user2.email, user2.password
+        ),
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
 
     // Verify failed
+    assert_eq!(response.status_code, 400);
+    assert_eq!(db.get(&user2.username), None);
 }
 
 // login test
