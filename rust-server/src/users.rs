@@ -3,7 +3,7 @@ use crate::{
     users, Database,
 };
 use argon2::{
-    password_hash::{rand_core, PasswordHash, PasswordHasher, SaltString},
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 
@@ -30,7 +30,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
     } else {
         return Err(HttpError {
             code: HttpErrorCode::Error400BadRequest,
-            message: "Request body has invalid format.".to_string(), // Todo, make this json
+            message: "Request body has invalid format.".to_string(),
         });
     };
 
@@ -38,7 +38,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
         // User already exists in the db
         return Err(HttpError {
             code: HttpErrorCode::Error409Conflict,
-            message: "User already exists.".to_string(), // Todo, make this json
+            message: "User already exists.".to_string(),
         });
     }
 
@@ -59,4 +59,49 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
     db.set(body.username, serde_json::to_string(&user_entry).unwrap());
 
     Ok("token".to_string())
+}
+
+#[derive(Serialize, Deserialize)]
+struct LoginRq {
+    username: String,
+    password: String,
+}
+
+pub fn login(body: String, db: Arc<impl Database>) -> Result<String, HttpError> {
+    let body: users::LoginRq = if let Ok(valid_body) = serde_json::from_str(&body) {
+        valid_body
+    } else {
+        return Err(HttpError {
+            code: HttpErrorCode::Error400BadRequest,
+            message: "Request body has invalid format.".to_string(),
+        });
+    };
+
+    // Get user info
+    let user_info: UserEntry = if let Some(user_info) = db.get(&body.username) {
+        serde_json::from_str(&user_info).unwrap()
+    } else {
+        // User doesn't exist
+        // Todo - should this just be a generic error in order to not leak info?
+        return Err(HttpError {
+            code: HttpErrorCode::Error401Unauthorized,
+            message: "User doesn't exist".to_string(),
+        });
+    };
+
+    // Check password
+    let parsed_hash = PasswordHash::new(&user_info.hash).unwrap();
+    if Argon2::default()
+        .verify_password(&body.password.as_bytes(), &parsed_hash)
+        .is_ok()
+    {
+        return Ok("success".to_string());
+    } else {
+        // Password incorrect
+        // Todo - should this just be a generic error in order to not leak info?
+        return Err(HttpError {
+            code: HttpErrorCode::Error401Unauthorized,
+            message: "Password incorrect".to_string(),
+        });
+    }
 }

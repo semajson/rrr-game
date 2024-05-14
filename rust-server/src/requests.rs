@@ -87,7 +87,7 @@ fn process_valid_request(
     // Sessions
     if valid_request.root == SESSIONS && valid_request.item == None {
         if valid_request.method == POST {
-            return not_implemented_error;
+            return users::login(valid_request.body, db);
         }
     } else if valid_request.root == USERS && valid_request.item == None {
         if valid_request.method == POST {
