@@ -82,6 +82,7 @@ fn test_users() -> (User, User) {
 
 #[test]
 fn test_create_user() {
+    // Setup
     let db = Arc::new(LocalDatabase::new());
     let (user1, user2) = test_users();
 
@@ -120,6 +121,7 @@ fn test_create_user() {
 
 #[test]
 fn test_login() {
+    // Setup
     let db = Arc::new(LocalDatabase::new());
     let (user1, _) = test_users();
     let request = build_request(
@@ -160,7 +162,7 @@ fn test_login() {
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
 
-    // Verify failed
+    // Verify login failed
     assert_eq!(response.status_code, 401);
 
     // Invalid login request
@@ -180,7 +182,68 @@ fn test_login() {
     assert_eq!(response.status_code, 400);
 }
 
-// Token test - verify token works correclty
+#[test]
+fn test_token() {
+    // Setup
+    let db = Arc::new(LocalDatabase::new());
+    let (user1, _) = test_users();
+    let request = build_request(
+        "POST",
+        "/users",
+        &format!(
+            "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
+            user1.username, user1.email, user1.password
+        ),
+    );
+    process_request(request, Arc::clone(&db));
+
+    // Valid login
+    let request = build_request(
+        "POST",
+        "/sessions",
+        &format!(
+            "{{\"username\":\"{}\", \"password\":\"{}\"}}",
+            user1.username, user1.password
+        ),
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+
+    // Verify token can be used
+    assert_eq!(response.status_code, 200);
+
+    // Login request using wrong password
+    let request = build_request(
+        "POST",
+        "/sessions",
+        &format!(
+            "{{\"username\":\"{}\", \"password\":\"{}\"}}",
+            user1.username,
+            "wrong_password".to_string()
+        ),
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+
+    // Verify login failed
+    assert_eq!(response.status_code, 401);
+
+    // Invalid login request
+    let request = build_request(
+        "POST",
+        "/sessions",
+        &format!(
+            "{{\"username\":\"{}\", \"password_abc\":\"{}\"}}",
+            user1.username,
+            "wrong_password".to_string()
+        ),
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+
+    // Verify failed
+    assert_eq!(response.status_code, 400);
+}
 
 // todo
 // get user info

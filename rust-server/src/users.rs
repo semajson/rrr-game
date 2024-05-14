@@ -1,4 +1,5 @@
 use crate::{
+    jwt,
     requests::{HttpError, HttpErrorCode},
     users, Database,
 };
@@ -22,6 +23,11 @@ struct UserEntry {
     email: String,
     hash: String,
     salt: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct TokenBody {
+    access_token: String,
 }
 
 pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpError> {
@@ -95,7 +101,10 @@ pub fn login(body: String, db: Arc<impl Database>) -> Result<String, HttpError> 
         .verify_password(body.password.as_bytes(), &parsed_hash)
         .is_ok()
     {
-        Ok("success".to_string())
+        let token_body = TokenBody {
+            access_token: jwt::create_jwt(&body.username, &"test".to_string()),
+        };
+        Ok(serde_json::to_string(&token_body).unwrap())
     } else {
         // Password incorrect
         // Todo - should this just be a generic error in order to not leak info?
@@ -104,4 +113,32 @@ pub fn login(body: String, db: Arc<impl Database>) -> Result<String, HttpError> 
             message: "Password incorrect".to_string(),
         })
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct PubUserInfo {
+    username: String,
+    email: String,
+}
+
+pub fn get_user(username: String, db: Arc<impl Database>) -> Result<String, HttpError> {
+    // Get user
+    let user_info: UserEntry = if let Some(user_info) = db.get(&username) {
+        serde_json::from_str(&user_info).unwrap()
+    } else {
+        // User doesn't exist
+        // Todo - should this just be a generic error in order to not leak info?
+        return Err(HttpError {
+            code: HttpErrorCode::Error404NotFround,
+            message: "User doesn't exist".to_string(),
+        });
+    };
+
+    // Only display the public info (e.g not the password)
+    let pub_user_info = PubUserInfo {
+        username,
+        email: user_info.email,
+    };
+
+    Ok(serde_json::to_string(&pub_user_info).unwrap())
 }

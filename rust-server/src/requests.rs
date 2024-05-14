@@ -102,6 +102,7 @@ fn process_valid_request(
     // Sessions
     if valid_request.root == SESSIONS {
         if valid_request.method == DELETE {
+            // return users::login(valid_request.body, db);
             not_implemented_error
         } else {
             not_found_error

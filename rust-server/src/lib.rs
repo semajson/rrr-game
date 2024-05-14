@@ -7,4 +7,5 @@ pub use requests::process_request;
 mod database;
 pub use database::{Database, LocalDatabase};
 
+mod jwt;
 mod users;
