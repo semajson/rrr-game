@@ -35,3 +35,9 @@ impl Database for LocalDatabase {
         map.remove(key);
     }
 }
+
+impl Default for LocalDatabase {
+    fn default() -> Self {
+        Self::new()
+    }
+}

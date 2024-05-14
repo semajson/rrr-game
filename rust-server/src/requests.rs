@@ -1,7 +1,7 @@
 use crate::{users, Database};
 use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
-use std::{fs, sync::Arc};
+use std::sync::Arc;
 
 const GET: &str = "GET";
 const POST: &str = "POST";
@@ -85,11 +85,11 @@ fn process_valid_request(
     // Routes with no auth
 
     // Sessions
-    if valid_request.root == SESSIONS && valid_request.item == None {
+    if valid_request.root == SESSIONS && valid_request.item.is_none() {
         if valid_request.method == POST {
             return users::login(valid_request.body, db);
         }
-    } else if valid_request.root == USERS && valid_request.item == None {
+    } else if valid_request.root == USERS && valid_request.item.is_none() {
         if valid_request.method == POST {
             return users::create_user(valid_request.body, db);
         }
@@ -109,7 +109,7 @@ fn process_valid_request(
     }
     // Users
     else if valid_request.root == USERS {
-        if let Some(user_id) = valid_request.item {
+        if let Some(_user_id) = valid_request.item {
             if valid_request.method == GET {
                 // ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
                 not_implemented_error
@@ -169,10 +169,7 @@ impl Request {
 
         if let Some(valid_request) = cap {
             fn match_to_string(option: Option<Match>) -> Option<String> {
-                match option {
-                    Some(value) => Some(value.as_str().to_string()),
-                    None => None,
-                }
+                option.map(|value| value.as_str().to_string())
             }
 
             // Method and root must be present if the regex is matched

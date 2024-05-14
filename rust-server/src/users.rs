@@ -3,12 +3,12 @@ use crate::{
     users, Database,
 };
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 
 use serde::{Deserialize, Serialize};
-use std::{fs, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 struct CreateUserRq {
@@ -34,7 +34,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
         });
     };
 
-    if let Some(_) = db.get(&body.username) {
+    if db.get(&body.username).is_some() {
         // User already exists in the db
         return Err(HttpError {
             code: HttpErrorCode::Error409Conflict,
@@ -46,7 +46,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
     let salt: SaltString = SaltString::generate(&mut rand_core::OsRng);
     let argon2 = Argon2::default();
     let hash = argon2
-        .hash_password(&body.password.as_bytes(), &salt)
+        .hash_password(body.password.as_bytes(), &salt)
         .unwrap()
         .to_string();
 
@@ -92,16 +92,16 @@ pub fn login(body: String, db: Arc<impl Database>) -> Result<String, HttpError> 
     // Check password
     let parsed_hash = PasswordHash::new(&user_info.hash).unwrap();
     if Argon2::default()
-        .verify_password(&body.password.as_bytes(), &parsed_hash)
+        .verify_password(body.password.as_bytes(), &parsed_hash)
         .is_ok()
     {
-        return Ok("success".to_string());
+        Ok("success".to_string())
     } else {
         // Password incorrect
         // Todo - should this just be a generic error in order to not leak info?
-        return Err(HttpError {
+        Err(HttpError {
             code: HttpErrorCode::Error401Unauthorized,
             message: "Password incorrect".to_string(),
-        });
+        })
     }
 }

@@ -1,4 +1,4 @@
-use regex::{Match, Regex};
+use regex::Regex;
 use rust_book_server_example::{process_request, Database, LocalDatabase};
 use std::str;
 use std::sync::Arc;
@@ -147,7 +147,7 @@ fn test_login() {
     // Verify succeeded
     assert_eq!(response.status_code, 200);
 
-    // Invalid login
+    // Login request using wrong password
     let request = build_request(
         "POST",
         "/sessions",
@@ -162,6 +162,22 @@ fn test_login() {
 
     // Verify failed
     assert_eq!(response.status_code, 401);
+
+    // Invalid login request
+    let request = build_request(
+        "POST",
+        "/sessions",
+        &format!(
+            "{{\"username\":\"{}\", \"password_abc\":\"{}\"}}",
+            user1.username,
+            "wrong_password".to_string()
+        ),
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+
+    // Verify failed
+    assert_eq!(response.status_code, 400);
 }
 
 // Token test - verify token works correclty

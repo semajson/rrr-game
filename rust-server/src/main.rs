@@ -1,7 +1,7 @@
 use rust_book_server_example::{process_request, Database, LocalDatabase, ThreadPool};
 use std::str;
 use std::{
-    io::{prelude::*, BufReader},
+    io::prelude::*,
     net::{TcpListener, TcpStream},
     sync::Arc,
 };
