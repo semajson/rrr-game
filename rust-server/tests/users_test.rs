@@ -213,7 +213,7 @@ fn test_login() {
 fn test_token() {
     // Setup
     let db = Arc::new(LocalDatabase::new());
-    let (user1, _) = test_users();
+    let (user1, user2) = test_users();
     let request = build_request(
         "POST",
         "/users",
@@ -237,43 +237,68 @@ fn test_token() {
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
-
     let token = response.token.unwrap();
 
     // Verfiy token can be used
-    let request = build_request(
-        "GET",
-        &format!("/users/{}", user1.username),
-        &format!(
-            "{{\"username\":\"{}\", \"password\":\"{}\"}}",
-            user1.username, user1.password
-        ),
-        &token,
-    );
+    let request = build_request("GET", &format!("/users/{}", user1.username), "", &token);
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
     assert_eq!(response.status_code, 200);
 
     // Get token from create user
-    // let request = build_request(
-    //     "POST",
-    //     "/sessions",
-    //     &format!(
-    //         "{{\"username\":\"{}\", \"password\":\"{}\"}}",
-    //         user1.username,
-    //         "wrong_password".to_string()
-    //     ),
-    //     "",
-    // );
-    // let response = process_request(request, Arc::clone(&db));
-    // let response = parse_response(response);
-    // assert_eq!(response.status_code, 200);
+    let request = build_request(
+        "POST",
+        "/users",
+        &format!(
+            "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
+            user2.username, user2.email, user2.password
+        ),
+        "",
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+    let token = response.token.unwrap();
 
-    // Verify token
+    // Verfiy token can be used
+    let request = build_request("GET", &format!("/users/{}", user2.username), "", &token);
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+    assert_eq!(response.status_code, 200);
 
-    // Use bad token
+    // Try to use a bad token
+    let request = build_request(
+        "GET",
+        &format!("/users/{}", user2.username),
+        "",
+        "blah blah bad token",
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
 
     // Verify get 401
+    assert_eq!(response.status_code, 401);
+
+    // Get valid token for user 1
+    let request = build_request(
+        "POST",
+        "/sessions",
+        &format!(
+            "{{\"username\":\"{}\", \"password\":\"{}\"}}",
+            user1.username, user1.password
+        ),
+        "",
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+    let token = response.token.unwrap();
+
+    // Try to use it for user 2
+    let request = build_request("GET", &format!("/users/{}", user2.username), "", &token);
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+
+    // Verify get 403
+    assert_eq!(response.status_code, 403);
 }
 
 // todo

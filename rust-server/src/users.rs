@@ -62,9 +62,16 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
         salt: salt.to_string(), // Js9 - not sure this is right way to store salt
     };
 
-    db.set(body.username, serde_json::to_string(&user_entry).unwrap());
+    db.set(
+        body.username.clone(),
+        serde_json::to_string(&user_entry).unwrap(),
+    );
 
-    Ok("token".to_string())
+    // Also give new user a token
+    let token_body = TokenBody {
+        access_token: jwt::create_jwt(&body.username, &"test".to_string()),
+    };
+    Ok(serde_json::to_string(&token_body).unwrap())
 }
 
 #[derive(Serialize, Deserialize)]
