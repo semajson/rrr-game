@@ -3,7 +3,7 @@ use rust_book_server_example::{process_request, Database, LocalDatabase};
 use std::str;
 use std::sync::Arc;
 
-fn build_request(method: &str, url: &str, body: &str) -> String {
+fn build_request(method: &str, url: &str, body: &str, token: &str) -> String {
     let body_length = body.len();
 
     let request = format!(
@@ -11,6 +11,7 @@ fn build_request(method: &str, url: &str, body: &str) -> String {
 User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r
 Host: www.tutorialspoint.com\r
 Content-Type: application/json\r
+Authorization: {token}\r
 Accept: */*\r
 Connection: Keep-Alive\r
 Content-Length: {body_length}\r
@@ -26,7 +27,8 @@ Content-Length: {body_length}\r
 
 struct Response {
     status_code: u32,
-    body: String,
+    body: Option<String>,
+    token: Option<String>,
 }
 
 fn parse_response(response: String) -> Response {
@@ -49,13 +51,32 @@ fn parse_response(response: String) -> Response {
         .parse::<u32>()
         .unwrap();
 
+    // Body
     let body = if let Some(body) = capture.name("body") {
-        body.as_str().to_string()
+        Some(body.as_str().to_string())
     } else {
-        "".to_string()
+        None
     };
 
-    Response { status_code, body }
+    // Token
+    let token = if let Some(ref body_present) = body {
+        // { }
+        let re = Regex::new(r#""access_token":"(?<token>.*)""#).unwrap();
+
+        let captures = re.captures_iter(&body_present);
+
+        captures
+            .last()
+            .map(|value| value.name("token").unwrap().as_str().to_string())
+    } else {
+        None
+    };
+
+    Response {
+        status_code,
+        body,
+        token,
+    }
 }
 
 pub struct User {
@@ -94,6 +115,7 @@ fn test_create_user() {
             "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
             user1.username, user1.email, user1.password
         ),
+        "",
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
@@ -110,6 +132,7 @@ fn test_create_user() {
             "{{\"username_blah_blah\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
             user2.username, user2.email, user2.password
         ),
+        "",
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
@@ -131,6 +154,7 @@ fn test_login() {
             "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
             user1.username, user1.email, user1.password
         ),
+        "",
     );
     process_request(request, Arc::clone(&db));
 
@@ -142,6 +166,7 @@ fn test_login() {
             "{{\"username\":\"{}\", \"password\":\"{}\"}}",
             user1.username, user1.password
         ),
+        "",
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
@@ -158,6 +183,7 @@ fn test_login() {
             user1.username,
             "wrong_password".to_string()
         ),
+        "",
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
@@ -174,6 +200,7 @@ fn test_login() {
             user1.username,
             "wrong_password".to_string()
         ),
+        "",
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
@@ -194,10 +221,11 @@ fn test_token() {
             "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
             user1.username, user1.email, user1.password
         ),
+        "",
     );
     process_request(request, Arc::clone(&db));
 
-    // Valid login
+    // Get token from valid login
     let request = build_request(
         "POST",
         "/sessions",
@@ -205,44 +233,47 @@ fn test_token() {
             "{{\"username\":\"{}\", \"password\":\"{}\"}}",
             user1.username, user1.password
         ),
+        "",
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
 
-    // Verify token can be used
-    assert_eq!(response.status_code, 200);
+    let token = response.token.unwrap();
 
-    // Login request using wrong password
+    // Verfiy token can be used
     let request = build_request(
-        "POST",
-        "/sessions",
+        "GET",
+        &format!("/users/{}", user1.username),
         &format!(
             "{{\"username\":\"{}\", \"password\":\"{}\"}}",
-            user1.username,
-            "wrong_password".to_string()
+            user1.username, user1.password
         ),
+        &token,
     );
     let response = process_request(request, Arc::clone(&db));
     let response = parse_response(response);
+    assert_eq!(response.status_code, 200);
 
-    // Verify login failed
-    assert_eq!(response.status_code, 401);
+    // Get token from create user
+    // let request = build_request(
+    //     "POST",
+    //     "/sessions",
+    //     &format!(
+    //         "{{\"username\":\"{}\", \"password\":\"{}\"}}",
+    //         user1.username,
+    //         "wrong_password".to_string()
+    //     ),
+    //     "",
+    // );
+    // let response = process_request(request, Arc::clone(&db));
+    // let response = parse_response(response);
+    // assert_eq!(response.status_code, 200);
 
-    // Invalid login request
-    let request = build_request(
-        "POST",
-        "/sessions",
-        &format!(
-            "{{\"username\":\"{}\", \"password_abc\":\"{}\"}}",
-            user1.username,
-            "wrong_password".to_string()
-        ),
-    );
-    let response = process_request(request, Arc::clone(&db));
-    let response = parse_response(response);
+    // Verify token
 
-    // Verify failed
-    assert_eq!(response.status_code, 400);
+    // Use bad token
+
+    // Verify get 401
 }
 
 // todo

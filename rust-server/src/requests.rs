@@ -1,7 +1,7 @@
-use crate::{users, Database};
+use crate::{jwt, users, Database};
 use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 const GET: &str = "GET";
 const POST: &str = "POST";
@@ -85,22 +85,24 @@ fn process_valid_request(
     // Routes with no auth
 
     // Sessions
-    if valid_request.root == SESSIONS && valid_request.item.is_none() {
+    if valid_request.resource == SESSIONS && valid_request.sub_resource.is_none() {
         if valid_request.method == POST {
             return users::login(valid_request.body, db);
         }
-    } else if valid_request.root == USERS && valid_request.item.is_none() {
+    } else if valid_request.resource == USERS && valid_request.sub_resource.is_none() {
         if valid_request.method == POST {
             return users::create_user(valid_request.body, db);
         }
     }
 
     // Auth check
+    let token = valid_request.headers.get("Authorization").unwrap();
+    let username = jwt::validate_jwt(token, &"test".to_string())?;
 
     // Routes with auth - if no matches here then return error
 
     // Sessions
-    if valid_request.root == SESSIONS {
+    if valid_request.resource == SESSIONS {
         if valid_request.method == DELETE {
             // return users::login(valid_request.body, db);
             not_implemented_error
@@ -109,11 +111,18 @@ fn process_valid_request(
         }
     }
     // Users
-    else if valid_request.root == USERS {
-        if let Some(_user_id) = valid_request.item {
+    else if valid_request.resource == USERS {
+        if let Some(mut user_id) = valid_request.id.clone() {
+            user_id.remove(0); // Remove / char
+            if user_id != username {
+                return Err(HttpError {
+                    code: HttpErrorCode::Error403Forbidden,
+                    message: "You are not authorized to access this user.".to_string(),
+                });
+            }
+
             if valid_request.method == GET {
-                // ("HTTP/1.1 200 OK", fs::read_to_string("hello.html").unwrap())
-                not_implemented_error
+                users::get_user(username, db)
             } else if valid_request.method == POST {
                 not_implemented_error
             } else if valid_request.method == DELETE {
@@ -132,10 +141,10 @@ fn process_valid_request(
 #[derive(Debug)]
 struct Request {
     method: String,
-    root: String,
+    resource: String,
     id: Option<String>,
-    item: Option<String>,
-    headers: Vec<String>,
+    sub_resource: Option<String>,
+    headers: HashMap<String, String>, // Todo, make this a hashmap
     body: String,
 }
 
@@ -149,7 +158,7 @@ impl Request {
         // Todo - maybe make this more efficient?
         // e.g. pares the request line first, and it it doesn't match, then bail
         let mut request_line = "".to_string();
-        let mut headers = vec![];
+        let mut headers = HashMap::new();
         let mut body = "".to_string();
         let mut in_body = false;
         for (index, line) in request.into_iter().enumerate() {
@@ -160,12 +169,14 @@ impl Request {
             } else if in_body {
                 body.push_str(&line);
             } else {
-                headers.push(line);
+                // Todo = error parsing?
+                let (header, value) = line.split_once(": ").unwrap();
+                headers.insert(header.to_string(), value.to_string());
             }
         }
 
         // Parse request line
-        let re = Regex::new(r"(?<method>GET|POST|DELETE) (?<root>/[a-z-]*)(?<id>/[a-z0-9]+)?(?<item>/[a-z0-9]+)? HTTP/1.1").unwrap();
+        let re = Regex::new(r"(?<method>GET|POST|DELETE) (?<resource>/[a-z-]*)(?<id>/[a-z0-9]+)?(?<sub_resource>/[a-z0-9]+)? HTTP/1.1").unwrap();
         let cap = re.captures_iter(&request_line).last();
 
         if let Some(valid_request) = cap {
@@ -175,15 +186,15 @@ impl Request {
 
             // Method and root must be present if the regex is matched
             let method = valid_request.name("method").unwrap().as_str().to_string();
-            let root = valid_request.name("root").unwrap().as_str().to_string();
+            let resource = valid_request.name("resource").unwrap().as_str().to_string();
             let id: Option<String> = match_to_string(valid_request.name("id"));
-            let item: Option<String> = match_to_string(valid_request.name("item"));
+            let sub_resource: Option<String> = match_to_string(valid_request.name("sub_resource"));
 
             let request = Request {
                 method,
-                root,
+                resource,
                 id,
-                item,
+                sub_resource,
                 headers,
                 body,
             };
