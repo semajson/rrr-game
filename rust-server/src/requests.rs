@@ -104,7 +104,7 @@ fn process_valid_request(
     // Sessions
     if valid_request.resource == SESSIONS {
         if valid_request.method == DELETE {
-            // return users::login(valid_request.body, db);
+            // Probably will never implement, as for jwt this is a pain
             not_implemented_error
         } else {
             not_found_error
