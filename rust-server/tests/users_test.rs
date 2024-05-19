@@ -278,6 +278,22 @@ fn test_token() {
     // Verify get 401
     assert_eq!(response.status_code, 401);
 
+    // TODO: Try to access a protected resoruce without the auth header
+    // let request = build_request("GET", &format!("/users/{}", user2.username), "", "");
+    // let response = process_request(request, Arc::clone(&db));
+    // let response = parse_response(response);
+
+    // // Verify get 401
+    // assert_eq!(response.status_code, 401);
+
+    // Try to access protected resource with blank token
+    let request = build_request("GET", &format!("/users/{}", user2.username), "", "");
+    let response = process_request(request, Arc::clone(&db));
+    let response = parse_response(response);
+
+    // Verify get 401
+    assert_eq!(response.status_code, 401);
+
     // Get valid token for user 1
     let request = build_request(
         "POST",

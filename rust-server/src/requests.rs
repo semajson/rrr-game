@@ -8,6 +8,7 @@ const POST: &str = "POST";
 const DELETE: &str = "DELETE";
 const USERS: &str = "/users";
 const SESSIONS: &str = "/sessions";
+const RRR_GAME: &str = "/rrr-game";
 
 #[derive(Debug)]
 pub enum HttpErrorCode {
@@ -82,24 +83,28 @@ fn process_valid_request(
         message: "Method not implemented for route".to_string(),
     });
 
+    //
     // Routes with no auth
+    //
 
     // Sessions
-    if valid_request.resource == SESSIONS && valid_request.sub_resource.is_none() {
+    if valid_request.resource == SESSIONS && valid_request.id.is_none() {
         if valid_request.method == POST {
             return users::login(valid_request.body, db);
         }
-    } else if valid_request.resource == USERS && valid_request.sub_resource.is_none() {
+    } else if valid_request.resource == USERS && valid_request.id.is_none() {
         if valid_request.method == POST {
             return users::create_user(valid_request.body, db);
         }
     }
 
-    // Auth check
-    let token = valid_request.headers.get("Authorization").unwrap();
-    let username = jwt::validate_jwt(token, &"test".to_string())?;
+    //
+    // Routes with auth
+    //
 
-    // Routes with auth - if no matches here then return error
+    // Auth check
+    let token = valid_request.headers.get("Authorization").unwrap(); // todo error handling
+    let username = jwt::validate_jwt(token, &"test".to_string())?;
 
     // Sessions
     if valid_request.resource == SESSIONS {
@@ -133,7 +138,9 @@ fn process_valid_request(
         } else {
             not_found_error
         }
-    } else {
+    }
+    // RRR game
+    else {
         not_found_error
     }
 }
@@ -144,7 +151,7 @@ struct Request {
     resource: String,
     id: Option<String>,
     sub_resource: Option<String>,
-    headers: HashMap<String, String>, // Todo, make this a hashmap
+    headers: HashMap<String, String>,
     body: String,
 }
 
