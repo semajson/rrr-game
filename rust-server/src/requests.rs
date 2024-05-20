@@ -117,8 +117,7 @@ fn process_valid_request(
     }
     // Users
     else if valid_request.resource == USERS {
-        if let Some(mut user_id) = valid_request.id.clone() {
-            user_id.remove(0); // Remove / char
+        if let Some(user_id) = valid_request.id {
             if user_id != username {
                 return Err(HttpError {
                     code: HttpErrorCode::Error403Forbidden,
@@ -140,7 +139,50 @@ fn process_valid_request(
         }
     }
     // RRR game
-    else {
+    else if valid_request.resource == RRR_GAME {
+        if let Some(game_id) = valid_request.id {
+            // Request for existing game
+
+            if let Some(sub_resource) = valid_request.sub_resource.clone() {
+                if sub_resource == "moves" {
+                    if valid_request.method == POST {
+                        // Make a move
+                        not_implemented_error
+                    } else {
+                        not_found_error
+                    }
+                } else if sub_resource == "players" {
+                    if valid_request.method == POST {
+                        // Join game
+                        not_implemented_error
+                    } else if valid_request.method == DELETE {
+                        // Leave game
+                        not_implemented_error
+                    } else {
+                        not_found_error
+                    }
+                } else {
+                    not_found_error
+                }
+            } else if valid_request.method == GET {
+                // Get the gamestate
+                not_implemented_error
+            } else if valid_request.method == DELETE {
+                // Delete the game
+                not_implemented_error
+            } else {
+                not_found_error
+            }
+        } else if valid_request.method == POST {
+            // Create game
+            not_implemented_error
+        } else if valid_request.method == GET {
+            // Get list of available games - probably won't do
+            not_implemented_error
+        } else {
+            not_found_error
+        }
+    } else {
         not_found_error
     }
 }
@@ -188,7 +230,7 @@ impl Request {
 
         if let Some(valid_request) = cap {
             fn match_to_string(option: Option<Match>) -> Option<String> {
-                option.map(|value| value.as_str().to_string())
+                option.map(|value| value.as_str()[1..].to_string())
             }
 
             // Method and root must be present if the regex is matched
