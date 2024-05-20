@@ -9,7 +9,7 @@ use argon2::{
 };
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Serialize, Deserialize)]
 struct CreateUserRq {
@@ -19,11 +19,11 @@ struct CreateUserRq {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct UserEntry {
-    // Todo - do I really want this public?
+struct UserEntry {
     email: String,
     hash: String,
     salt: String,
+    current_games: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -61,6 +61,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
         email: body.email,
         hash,
         salt: salt.to_string(), // Js9 - not sure this is right way to store salt
+        current_games: HashMap::new(),
     };
 
     db.set(
@@ -129,7 +130,7 @@ struct PubUserInfo {
     email: String,
 }
 
-pub fn get_user_raw(username: &String, db: Arc<impl Database>) -> Result<UserEntry, HttpError> {
+fn get_user_raw(username: &String, db: Arc<impl Database>) -> Result<UserEntry, HttpError> {
     if let Some(user_info) = db.get(username) {
         Ok(serde_json::from_str(&user_info).unwrap())
     } else {
@@ -153,4 +154,15 @@ pub fn get_user(username: String, db: Arc<impl Database>) -> Result<String, Http
     };
 
     Ok(serde_json::to_string(&pub_user_info).unwrap())
+}
+
+pub fn get_user_curr_game_id(
+    username: &String,
+    db: Arc<impl Database>,
+    game: &str,
+) -> Result<Option<String>, HttpError> {
+    // Get user
+    let user_info: UserEntry = get_user_raw(&username, db)?;
+
+    Ok(user_info.current_games.get(game).map(|x| x.clone()))
 }
