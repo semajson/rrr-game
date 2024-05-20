@@ -1,4 +1,4 @@
-use crate::{jwt, users, Database};
+use crate::{jwt, rrr_game, users, Database};
 use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -175,7 +175,7 @@ fn process_valid_request(
             }
         } else if valid_request.method == POST {
             // Create game
-            not_implemented_error
+            rrr_game::create_game(username, db)
         } else if valid_request.method == GET {
             // Get list of available games - probably won't do
             not_implemented_error

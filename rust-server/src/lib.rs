@@ -8,4 +8,5 @@ mod database;
 pub use database::{Database, LocalDatabase};
 
 mod jwt;
+mod rrr_game;
 mod users;

@@ -19,7 +19,8 @@ struct CreateUserRq {
 }
 
 #[derive(Serialize, Deserialize)]
-struct UserEntry {
+pub struct UserEntry {
+    // Todo - do I really want this public?
     email: String,
     hash: String,
     salt: String,
@@ -128,18 +129,22 @@ struct PubUserInfo {
     email: String,
 }
 
-pub fn get_user(username: String, db: Arc<impl Database>) -> Result<String, HttpError> {
-    // Get user
-    let user_info: UserEntry = if let Some(user_info) = db.get(&username) {
-        serde_json::from_str(&user_info).unwrap()
+pub fn get_user_raw(username: &String, db: Arc<impl Database>) -> Result<UserEntry, HttpError> {
+    if let Some(user_info) = db.get(username) {
+        Ok(serde_json::from_str(&user_info).unwrap())
     } else {
         // User doesn't exist
         // Todo - should this just be a generic error in order to not leak info?
-        return Err(HttpError {
+        Err(HttpError {
             code: HttpErrorCode::Error404NotFround,
             message: "User doesn't exist".to_string(),
-        });
-    };
+        })
+    }
+}
+
+pub fn get_user(username: String, db: Arc<impl Database>) -> Result<String, HttpError> {
+    // Get user
+    let user_info: UserEntry = get_user_raw(&username, db)?;
 
     // Only display the public info (e.g not the password)
     let pub_user_info = PubUserInfo {
