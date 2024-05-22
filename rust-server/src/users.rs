@@ -18,12 +18,18 @@ struct CreateUserRq {
     password: String,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserGameInfo {
+    game_id: String,
+    chunk_id: String,
+}
+
 #[derive(Serialize, Deserialize)]
 struct UserEntry {
     email: String,
     hash: String,
     salt: String,
-    current_games: HashMap<String, String>,
+    current_games: HashMap<String, UserGameInfo>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -156,11 +162,11 @@ pub fn get_user(username: String, db: Arc<impl Database>) -> Result<String, Http
     Ok(serde_json::to_string(&pub_user_info).unwrap())
 }
 
-pub fn get_user_curr_game_id(
+pub fn get_user_curr_game_info(
     username: &String,
     db: Arc<impl Database>,
     game: &str,
-) -> Result<Option<String>, HttpError> {
+) -> Result<Option<UserGameInfo>, HttpError> {
     // Get user
     let user_info: UserEntry = get_user_raw(&username, db)?;
 

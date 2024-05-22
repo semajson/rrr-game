@@ -18,6 +18,7 @@ pub enum HttpErrorCode {
     Error404NotFround,
     Error409Conflict,
     Error501NotImplemented,
+    Error503ServiceUnavailable,
 }
 
 #[derive(Debug)]
@@ -50,6 +51,9 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
                 HttpErrorCode::Error404NotFround => ("404 Not found", error_body),
                 HttpErrorCode::Error409Conflict => ("409 Conflict", error_body),
                 HttpErrorCode::Error501NotImplemented => ("501 Not implemented", error_body),
+                HttpErrorCode::Error503ServiceUnavailable => {
+                    ("503 Service unavailable", error_body)
+                }
             }
         }
     };
