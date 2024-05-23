@@ -11,6 +11,11 @@ struct Coord {
     x: i32,
     y: i32,
 }
+impl Coord {
+    fn id(&self) -> String {
+        self.x.to_string() + "-" + &self.y.to_string()
+    }
+}
 
 const GAME_NAME: &str = "rrr-game";
 
@@ -25,11 +30,15 @@ struct GamestateChunk {
 }
 impl GamestateChunk {
     fn get_id(&self) -> String {
-        self.coord.x.to_string() + "-" + &self.coord.y.to_string()
+        self.coord.id()
     }
-    fn new(coord: Coord, username: &String, user_coord: Coord) -> GamestateChunk {
+    fn new(coord: Coord, username: &String, user_coord: Option<Coord>) -> GamestateChunk {
         let terrain = vec![vec![GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
-        let users = HashMap::from([(username.clone(), user_coord)]);
+        let mut users = HashMap::new();
+
+        if let Some(user_coord) = user_coord {
+            users.insert(username.clone(), user_coord);
+        }
 
         GamestateChunk {
             coord,
@@ -37,6 +46,26 @@ impl GamestateChunk {
             users,
         }
     }
+
+    fn get_neighbours(&self) -> Vec<Coord> {
+        let mut neighbours = vec![];
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                if (dx == 0) && (dy == 0) {
+                    continue;
+                }
+                neighbours.push(Coord {
+                    x: self.coord.x + dx,
+                    y: self.coord.y + dy,
+                });
+            }
+        }
+        neighbours
+    }
+}
+
+fn get_visible_gamestate(centre_chunk: GamestateChunk, chunks: Vec<GamestateChunk>) {
+    // Todo
 }
 
 pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, HttpError> {
@@ -56,8 +85,9 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
         .take(7)
         .map(char::from)
         .collect();
+    let centre_chunk_cord = Coord { x: 0, y: 0 };
     if db
-        .get(&(GAME_NAME.to_string() + &game_id + "-0-0"))
+        .get(&(GAME_NAME.to_string() + ":" + &game_id + ":" + &centre_chunk_cord.id()))
         .is_some()
     {
         return Err(HttpError {
@@ -67,13 +97,24 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
     }
 
     // Create new chunks
-    let new_chunk = GamestateChunk::new(Coord { x: 0, y: 0 }, &username, Coord { x: 0, y: 0 });
+    let centre_chunk =
+        GamestateChunk::new(centre_chunk_cord, &username, Some(Coord { x: 0, y: 0 }));
 
-    // todo Create surrounding chunks
+    let neighbours = centre_chunk.get_neighbours();
+    let mut chunks = vec![centre_chunk];
+    for neighbour in neighbours {
+        chunks.push(GamestateChunk::new(neighbour, &username, None))
+    }
 
-    // todo Store chunks in DB
+    // Store chunks in DB
+    for chunk in chunks {
+        db.set(
+            GAME_NAME.to_string() + ":" + &game_id + ":" + &chunk.get_id(),
+            serde_json::to_string(&chunk).unwrap(),
+        );
+    }
 
-    // TODO - temp return the gamestate to the user
+    // todo - temp return the gamestate to the user
 
-    Ok(serde_json::to_string(&new_chunk).unwrap())
+    Ok(serde_json::to_string(&centre_chunk).unwrap())
 }
