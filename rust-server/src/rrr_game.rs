@@ -6,7 +6,8 @@ use rand::{distributions::Alphanumeric, Rng}; // 0.8
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
+// Hmm, should have differnt coords for users and game chunks?
 struct Coord {
     x: i32,
     y: i32,
@@ -22,7 +23,7 @@ const GAME_NAME: &str = "rrr-game";
 const CHUNK_LENGTH: usize = 10;
 const GRASS: char = 'G';
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct GamestateChunk {
     coord: Coord,
     terrain: Vec<Vec<char>>,
@@ -63,9 +64,54 @@ impl GamestateChunk {
         neighbours
     }
 }
+fn get_visible_gamestate(
+    centre: Coord,
+    chunks: HashMap<Coord, GamestateChunk>,
+) -> (Vec<Vec<char>>, HashMap<String, Coord>) {
+    // Get users
+    let mut users: HashMap<String, Coord> = HashMap::new();
+    for (_, chunk) in chunks.iter() {
+        users.extend(chunk.users.clone());
+    }
 
-fn get_visible_gamestate(centre_chunk: GamestateChunk, chunks: Vec<GamestateChunk>) {
-    // Todo
+    // Get terrain
+    let get_chunk = |dx, dy| {
+        chunks
+            .get(&Coord {
+                x: centre.x + dx,
+                y: centre.y + dy,
+            })
+            .unwrap()
+    };
+
+    let get_new_rows = |dy| {
+        let mut rows = vec![];
+        let left = get_chunk(-1, dy).terrain.clone();
+        let middle = get_chunk(0, dy).terrain.clone();
+        let right = get_chunk(1, dy).terrain.clone();
+        for (i, _) in left.iter().enumerate() {
+            let mut new_row = vec![];
+            new_row.extend(left[i].clone());
+            new_row.extend(middle[i].clone());
+            new_row.extend(right[i].clone());
+
+            rows.push(new_row);
+        }
+        rows
+    };
+
+    let mut terrain: Vec<Vec<char>> = vec![];
+
+    // Top
+    terrain.extend(get_new_rows(-1));
+
+    // Middle
+    terrain.extend(get_new_rows(0));
+
+    // Bottom
+    terrain.extend(get_new_rows(1));
+
+    (terrain, users)
 }
 
 pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, HttpError> {
@@ -101,13 +147,16 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
         GamestateChunk::new(centre_chunk_cord, &username, Some(Coord { x: 0, y: 0 }));
 
     let neighbours = centre_chunk.get_neighbours();
-    let mut chunks = vec![centre_chunk];
+    let mut chunks = HashMap::from([(centre_chunk.coord.clone(), centre_chunk.clone())]); // maybe make a hashmap?
     for neighbour in neighbours {
-        chunks.push(GamestateChunk::new(neighbour, &username, None))
+        chunks.insert(
+            neighbour.clone(),
+            GamestateChunk::new(neighbour, &username, None),
+        );
     }
 
     // Store chunks in DB
-    for chunk in chunks {
+    for (_, chunk) in chunks {
         db.set(
             GAME_NAME.to_string() + ":" + &game_id + ":" + &chunk.get_id(),
             serde_json::to_string(&chunk).unwrap(),
@@ -116,5 +165,100 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
 
     // todo - temp return the gamestate to the user
 
-    Ok(serde_json::to_string(&centre_chunk).unwrap())
+    Ok(serde_json::to_string("").unwrap())
+}
+
+#[test]
+fn test_get_visible_gamestate() {
+    let chunks: HashMap<Coord, GamestateChunk> = HashMap::from([
+        (
+            Coord { x: 9, y: 9 },
+            GamestateChunk {
+                coord: Coord { x: 9, y: 9 },
+                terrain: vec![vec!['a', 'b'], vec!['A', 'B']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 10, y: 9 },
+            GamestateChunk {
+                coord: Coord { x: 10, y: 9 },
+                terrain: vec![vec!['c', 'd'], vec!['C', 'D']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 11, y: 9 },
+            GamestateChunk {
+                coord: Coord { x: 11, y: 9 },
+                terrain: vec![vec!['e', 'f'], vec!['E', 'F']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 9, y: 10 },
+            GamestateChunk {
+                coord: Coord { x: 9, y: 19 },
+                terrain: vec![vec!['h', 'i'], vec!['H', 'I']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 10, y: 10 },
+            GamestateChunk {
+                coord: Coord { x: 10, y: 10 },
+                terrain: vec![vec!['j', 'k'], vec!['J', 'K']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 11, y: 10 },
+            GamestateChunk {
+                coord: Coord { x: 11, y: 10 },
+                terrain: vec![vec!['l', 'm'], vec!['L', 'M']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 9, y: 11 },
+            GamestateChunk {
+                coord: Coord { x: 9, y: 11 },
+                terrain: vec![vec!['n', 'o'], vec!['N', 'O']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 10, y: 11 },
+            GamestateChunk {
+                coord: Coord { x: 10, y: 11 },
+                terrain: vec![vec!['p', 'q'], vec!['P', 'Q']],
+                users: HashMap::new(),
+            },
+        ),
+        (
+            Coord { x: 11, y: 11 },
+            GamestateChunk {
+                coord: Coord { x: 11, y: 11 },
+                terrain: vec![vec!['r', 's'], vec!['R', 'S']],
+                users: HashMap::new(),
+            },
+        ),
+    ]);
+
+    let visible_gamestate = get_visible_gamestate(Coord { x: 10, y: 10 }, chunks);
+
+    assert_eq!(
+        visible_gamestate,
+        (
+            vec![
+                vec!['a', 'b', 'c', 'd', 'e', 'f'],
+                vec!['A', 'B', 'C', 'D', 'E', 'F'],
+                vec!['h', 'i', 'j', 'k', 'l', 'm'],
+                vec!['H', 'I', 'J', 'K', 'L', 'M'],
+                vec!['n', 'o', 'p', 'q', 'r', 's'],
+                vec!['N', 'O', 'P', 'Q', 'R', 'S'],
+            ],
+            HashMap::new()
+        )
+    )
 }
