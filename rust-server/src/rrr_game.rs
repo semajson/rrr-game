@@ -185,6 +185,8 @@ fn user_coord_to_gamestate_coord(user_coord: Coord, chunk_length: usize) -> Coor
     assert!((chunk_length % 2) == 1);
     let offset = (chunk_length - 1) / 2;
 
+    // Might be a nicer way to do this
+    // Have a lot of UTs, so can easily refactor!
     let chunk_x = if user_coord.x > 0 {
         (user_coord.x + offset) / chunk_length
     } else {
