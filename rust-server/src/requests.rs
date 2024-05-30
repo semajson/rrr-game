@@ -17,6 +17,7 @@ pub enum HttpErrorCode {
     Error403Forbidden,
     Error404NotFround,
     Error409Conflict,
+    Error500InternalServerError,
     Error501NotImplemented,
     Error503ServiceUnavailable,
 }
@@ -53,6 +54,9 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
                 HttpErrorCode::Error501NotImplemented => ("501 Not implemented", error_body),
                 HttpErrorCode::Error503ServiceUnavailable => {
                     ("503 Service unavailable", error_body)
+                }
+                HttpErrorCode::Error500InternalServerError => {
+                    ("500 Internal Server Error", error_body)
                 }
             }
         }
