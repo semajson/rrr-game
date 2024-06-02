@@ -221,7 +221,7 @@ fn test_token() {
     assert_eq!(response.status_code, 403);
 }
 
-// todo tests
+// TODO: tests
 // get user info
 // update user info
 // delete user

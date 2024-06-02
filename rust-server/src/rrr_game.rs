@@ -155,8 +155,8 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
     }
 
     // Create new chunks
-    let centre_chunk =
-        GamestateChunk::new(centre_chunk_coord, &username, Some(Coord { x: 0, y: 0 }));
+    let user_coord = Coord { x: 0, y: 0 };
+    let centre_chunk = GamestateChunk::new(centre_chunk_coord, &username, Some(user_coord.clone()));
 
     let neighbours = centre_chunk.get_neighbours();
     let mut chunks = HashMap::from([(centre_chunk.coord.clone(), centre_chunk.clone())]);
@@ -175,9 +175,8 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
         );
     }
 
-    // todo - temp return the gamestate to the user
-
-    Ok(serde_json::to_string("").unwrap())
+    // Todo - consider if should hit db here - maybe just to be sure it was written?
+    get_gamestate(user_coord, username, game_id, db)
 }
 
 fn user_coord_to_gamestate_coord(user_coord: Coord, chunk_length: usize) -> Coord {
