@@ -7,15 +7,20 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
-// Hmm, should have differnt coords for users and game chunks?
-struct Coord {
+struct GamestateCoord {
     x: i32,
     y: i32,
 }
-impl Coord {
+impl GamestateCoord {
     fn id(&self) -> String {
         self.x.to_string() + "-" + &self.y.to_string()
     }
+}
+
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
+struct UserCoord {
+    x: i32,
+    y: i32,
 }
 
 const GAME_NAME: &str = "rrr-game";
@@ -25,15 +30,19 @@ const GRASS: char = 'G';
 
 #[derive(Serialize, Deserialize, Clone)]
 struct GamestateChunk {
-    coord: Coord,
+    coord: GamestateCoord,
     terrain: Vec<Vec<char>>,
-    users: HashMap<String, Coord>,
+    users: HashMap<String, UserCoord>,
 }
 impl GamestateChunk {
     fn get_id(&self) -> String {
         self.coord.id()
     }
-    fn new(coord: Coord, username: &String, user_coord: Option<Coord>) -> GamestateChunk {
+    fn new(
+        coord: GamestateCoord,
+        username: &String,
+        user_coord: Option<UserCoord>,
+    ) -> GamestateChunk {
         let terrain = vec![vec![GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
         let mut users = HashMap::new();
 
@@ -48,14 +57,14 @@ impl GamestateChunk {
         }
     }
 
-    fn get_neighbours(&self) -> Vec<Coord> {
+    fn get_neighbours(&self) -> Vec<GamestateCoord> {
         let mut neighbours = vec![];
         for dx in -1..=1 {
             for dy in -1..=1 {
                 if (dx == 0) && (dy == 0) {
                     continue;
                 }
-                neighbours.push(Coord {
+                neighbours.push(GamestateCoord {
                     x: self.coord.x + dx,
                     y: self.coord.y + dy,
                 });
@@ -68,15 +77,15 @@ impl GamestateChunk {
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 struct VisibleGamestate {
     terrain: Vec<Vec<char>>,
-    users: HashMap<String, Coord>,
+    users: HashMap<String, UserCoord>,
 }
 
 fn get_visible_gamestate(
-    centre: Coord, // A gamestate coord, not a user coord
-    chunks: HashMap<Coord, GamestateChunk>,
+    centre: GamestateCoord,
+    chunks: HashMap<GamestateCoord, GamestateChunk>,
 ) -> VisibleGamestate {
     // Get users
-    let mut users: HashMap<String, Coord> = HashMap::new();
+    let mut users: HashMap<String, UserCoord> = HashMap::new();
     for (_, chunk) in chunks.iter() {
         users.extend(chunk.users.clone());
     }
@@ -84,7 +93,7 @@ fn get_visible_gamestate(
     // Userful inline functions (?)
     let get_chunk = |dx, dy| {
         chunks
-            .get(&Coord {
+            .get(&GamestateCoord {
                 x: centre.x + dx,
                 y: centre.y + dy,
             })
@@ -143,7 +152,7 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
 
     // Create new current game ID
     let game_id: String = generate_game_id();
-    let centre_chunk_coord = Coord { x: 0, y: 0 };
+    let centre_chunk_coord = GamestateCoord { x: 0, y: 0 };
     if db
         .get(&(GAME_NAME.to_string() + ":" + &game_id + ":" + &centre_chunk_coord.id()))
         .is_some()
@@ -155,7 +164,7 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
     }
 
     // Create new chunks
-    let user_coord = Coord { x: 0, y: 0 };
+    let user_coord = UserCoord { x: 0, y: 0 };
     let centre_chunk = GamestateChunk::new(centre_chunk_coord, &username, Some(user_coord.clone()));
 
     let neighbours = centre_chunk.get_neighbours();
@@ -179,7 +188,7 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
     get_gamestate(user_coord, username, game_id, db)
 }
 
-fn user_coord_to_gamestate_coord(user_coord: Coord, chunk_length: usize) -> Coord {
+fn user_coord_to_gamestate_coord(user_coord: UserCoord, chunk_length: usize) -> GamestateCoord {
     let chunk_length = chunk_length as i32;
     assert!((chunk_length % 2) == 1);
     let offset = (chunk_length - 1) / 2;
@@ -197,14 +206,14 @@ fn user_coord_to_gamestate_coord(user_coord: Coord, chunk_length: usize) -> Coor
         (user_coord.y - offset) / chunk_length
     };
 
-    Coord {
+    GamestateCoord {
         x: chunk_x,
         y: chunk_y,
     }
 }
 
 fn get_gamestate(
-    user_coord: Coord,
+    user_coord: UserCoord,
     username: String,
     game_id: String,
     db: Arc<impl Database>,
@@ -248,82 +257,82 @@ fn get_gamestate(
 
 #[test]
 fn test_get_visible_gamestate() {
-    let chunks: HashMap<Coord, GamestateChunk> = HashMap::from([
+    let chunks: HashMap<GamestateCoord, GamestateChunk> = HashMap::from([
         (
-            Coord { x: 9, y: 9 },
+            GamestateCoord { x: 9, y: 9 },
             GamestateChunk {
-                coord: Coord { x: 9, y: 9 },
+                coord: GamestateCoord { x: 9, y: 9 },
                 terrain: vec![vec!['a', 'b'], vec!['A', 'B']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 10, y: 9 },
+            GamestateCoord { x: 10, y: 9 },
             GamestateChunk {
-                coord: Coord { x: 10, y: 9 },
+                coord: GamestateCoord { x: 10, y: 9 },
                 terrain: vec![vec!['c', 'd'], vec!['C', 'D']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 11, y: 9 },
+            GamestateCoord { x: 11, y: 9 },
             GamestateChunk {
-                coord: Coord { x: 11, y: 9 },
+                coord: GamestateCoord { x: 11, y: 9 },
                 terrain: vec![vec!['e', 'f'], vec!['E', 'F']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 9, y: 10 },
+            GamestateCoord { x: 9, y: 10 },
             GamestateChunk {
-                coord: Coord { x: 9, y: 19 },
+                coord: GamestateCoord { x: 9, y: 19 },
                 terrain: vec![vec!['h', 'i'], vec!['H', 'I']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 10, y: 10 },
+            GamestateCoord { x: 10, y: 10 },
             GamestateChunk {
-                coord: Coord { x: 10, y: 10 },
+                coord: GamestateCoord { x: 10, y: 10 },
                 terrain: vec![vec!['j', 'k'], vec!['J', 'K']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 11, y: 10 },
+            GamestateCoord { x: 11, y: 10 },
             GamestateChunk {
-                coord: Coord { x: 11, y: 10 },
+                coord: GamestateCoord { x: 11, y: 10 },
                 terrain: vec![vec!['l', 'm'], vec!['L', 'M']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 9, y: 11 },
+            GamestateCoord { x: 9, y: 11 },
             GamestateChunk {
-                coord: Coord { x: 9, y: 11 },
+                coord: GamestateCoord { x: 9, y: 11 },
                 terrain: vec![vec!['n', 'o'], vec!['N', 'O']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 10, y: 11 },
+            GamestateCoord { x: 10, y: 11 },
             GamestateChunk {
-                coord: Coord { x: 10, y: 11 },
+                coord: GamestateCoord { x: 10, y: 11 },
                 terrain: vec![vec!['p', 'q'], vec!['P', 'Q']],
                 users: HashMap::new(),
             },
         ),
         (
-            Coord { x: 11, y: 11 },
+            GamestateCoord { x: 11, y: 11 },
             GamestateChunk {
-                coord: Coord { x: 11, y: 11 },
+                coord: GamestateCoord { x: 11, y: 11 },
                 terrain: vec![vec!['r', 's'], vec!['R', 'S']],
                 users: HashMap::new(),
             },
         ),
     ]);
 
-    let visible_gamestate = get_visible_gamestate(Coord { x: 10, y: 10 }, chunks);
+    let visible_gamestate = get_visible_gamestate(GamestateCoord { x: 10, y: 10 }, chunks);
 
     assert_eq!(
         visible_gamestate,
@@ -344,51 +353,51 @@ fn test_get_visible_gamestate() {
 #[test]
 fn test_user_coord_to_gamestate_coord() {
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 0, y: 0 }, 9),
-        Coord { x: 0, y: 0 }
+        user_coord_to_gamestate_coord(UserCoord { x: 0, y: 0 }, 9),
+        GamestateCoord { x: 0, y: 0 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: -7, y: -8 }, 9),
-        Coord { x: -1, y: -1 }
+        user_coord_to_gamestate_coord(UserCoord { x: -7, y: -8 }, 9),
+        GamestateCoord { x: -1, y: -1 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 0, y: -5 }, 9),
-        Coord { x: 0, y: -1 }
+        user_coord_to_gamestate_coord(UserCoord { x: 0, y: -5 }, 9),
+        GamestateCoord { x: 0, y: -1 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 5, y: -13 }, 9),
-        Coord { x: 1, y: -1 }
-    );
-
-    assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: -5, y: 0 }, 9),
-        Coord { x: -1, y: 0 }
-    );
-    assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 4, y: -4 }, 9),
-        Coord { x: 0, y: 0 }
-    );
-    assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 13, y: -3 }, 9),
-        Coord { x: 1, y: 0 }
+        user_coord_to_gamestate_coord(UserCoord { x: 5, y: -13 }, 9),
+        GamestateCoord { x: 1, y: -1 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: -13, y: 6 }, 9),
-        Coord { x: -1, y: 1 }
+        user_coord_to_gamestate_coord(UserCoord { x: -5, y: 0 }, 9),
+        GamestateCoord { x: -1, y: 0 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 1, y: 10 }, 9),
-        Coord { x: 0, y: 1 }
+        user_coord_to_gamestate_coord(UserCoord { x: 4, y: -4 }, 9),
+        GamestateCoord { x: 0, y: 0 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: 5, y: 9 }, 9),
-        Coord { x: 1, y: 1 }
+        user_coord_to_gamestate_coord(UserCoord { x: 13, y: -3 }, 9),
+        GamestateCoord { x: 1, y: 0 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(Coord { x: -14, y: -14 }, 9),
-        Coord { x: -2, y: -2 }
+        user_coord_to_gamestate_coord(UserCoord { x: -13, y: 6 }, 9),
+        GamestateCoord { x: -1, y: 1 }
+    );
+    assert_eq!(
+        user_coord_to_gamestate_coord(UserCoord { x: 1, y: 10 }, 9),
+        GamestateCoord { x: 0, y: 1 }
+    );
+    assert_eq!(
+        user_coord_to_gamestate_coord(UserCoord { x: 5, y: 9 }, 9),
+        GamestateCoord { x: 1, y: 1 }
+    );
+
+    assert_eq!(
+        user_coord_to_gamestate_coord(UserCoord { x: -14, y: -14 }, 9),
+        GamestateCoord { x: -2, y: -2 }
     );
 }
