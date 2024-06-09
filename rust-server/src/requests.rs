@@ -238,16 +238,18 @@ impl Request {
         let cap = re.captures_iter(&request_line).last();
 
         if let Some(valid_request) = cap {
-            fn match_to_string(option: Option<Match>) -> Option<String> {
+            fn match_to_string_no_leading_char(option: Option<Match>) -> Option<String> {
                 option.map(|value| value.as_str()[1..].to_string())
             }
 
             // Method and root must be present if the regex is matched
             let method = valid_request.name("method").unwrap().as_str().to_string();
             let resource = valid_request.name("resource").unwrap().as_str().to_string();
-            let id: Option<String> = match_to_string(valid_request.name("id"));
-            let sub_resource: Option<String> = match_to_string(valid_request.name("sub_resource"));
-            let parameters: Option<String> = match_to_string(valid_request.name("parameters")); // Note - this removes the leading &
+            let id: Option<String> = match_to_string_no_leading_char(valid_request.name("id"));
+            let sub_resource: Option<String> =
+                match_to_string_no_leading_char(valid_request.name("sub_resource"));
+            let parameters: Option<String> =
+                match_to_string_no_leading_char(valid_request.name("parameters"));
             let parameters = match parameters {
                 Some(raw) => {
                     let params = raw.split("&").map(String::from).collect::<Vec<String>>();
