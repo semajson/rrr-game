@@ -80,7 +80,14 @@ struct VisibleGamestate {
     users: HashMap<String, UserCoord>,
 }
 
-fn get_visible_gamestate(
+#[derive(Serialize, Deserialize)]
+struct CreateGameRsp {
+    game_id: String,
+    user_coord: UserCoord,
+    visible_gamestate: VisibleGamestate, // Todo - decide if want to do this or not
+}
+
+fn create_visible_gamestate(
     centre: GamestateCoord,
     chunks: HashMap<GamestateCoord, GamestateChunk>,
 ) -> VisibleGamestate {
@@ -185,10 +192,16 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
     }
 
     // Todo - consider if should hit db here - maybe just to be sure it was written?
-    get_gamestate(user_coord, username, game_id, db)
+    let visible_gamestate = get_visible_gamestate(&user_coord, username, &game_id, db)?;
+    let rsp = CreateGameRsp {
+        game_id,
+        user_coord,
+        visible_gamestate,
+    };
+    Ok(serde_json::to_string(&rsp).unwrap())
 }
 
-fn user_coord_to_gamestate_coord(user_coord: UserCoord, chunk_length: usize) -> GamestateCoord {
+fn user_coord_to_gamestate_coord(user_coord: &UserCoord, chunk_length: usize) -> GamestateCoord {
     let chunk_length = chunk_length as i32;
     assert!((chunk_length % 2) == 1);
     let offset = (chunk_length - 1) / 2;
@@ -212,12 +225,12 @@ fn user_coord_to_gamestate_coord(user_coord: UserCoord, chunk_length: usize) -> 
     }
 }
 
-fn get_gamestate(
-    user_coord: UserCoord,
+fn get_visible_gamestate(
+    user_coord: &UserCoord,
     username: String,
-    game_id: String,
+    game_id: &String,
     db: Arc<impl Database>,
-) -> Result<String, HttpError> {
+) -> Result<VisibleGamestate, HttpError> {
     let centre_gamestate_coord = user_coord_to_gamestate_coord(user_coord, CHUNK_LENGTH);
 
     // Get centre gamestatechunk
@@ -251,12 +264,60 @@ fn get_gamestate(
     }
 
     // Return visible gamestate
-    let visible_gamestate = get_visible_gamestate(centre_gamestate_coord, chunks);
+    Ok(create_visible_gamestate(centre_gamestate_coord, chunks))
+}
+
+pub fn get_gamestate(
+    username: String,
+    parameters: Option<Vec<(String, String)>>,
+    game_id: String,
+    db: Arc<impl Database>,
+) -> Result<String, HttpError> {
+    // Convert the passed in params to Usercoord
+    if parameters.is_none() {
+        return Err(HttpError {
+            code: HttpErrorCode::Error400BadRequest,
+            message: "User coords not supplied in GET gamestate request.".to_string(),
+        });
+    }
+    let parameters = parameters.unwrap();
+
+    fn get_int_param(key: &str, parameters: &Vec<(String, String)>) -> Option<i32> {
+        let found_parameters = parameters
+            .iter()
+            .filter(|(k, v)| key == k)
+            .map(|(k, v)| v.clone())
+            .collect::<Vec<String>>();
+
+        if found_parameters.is_empty() {
+            return None;
+        } else {
+            found_parameters[0].parse::<i32>().ok()
+        }
+    }
+
+    let found_x = get_int_param("x", &parameters).ok_or(HttpError {
+        code: HttpErrorCode::Error400BadRequest,
+        message: "X position missing or invalid.".to_string(),
+    })?;
+
+    let found_y = get_int_param("y", &parameters).ok_or(HttpError {
+        code: HttpErrorCode::Error400BadRequest,
+        message: "Y position missing or invalid.".to_string(),
+    })?;
+
+    // Supplied user coord is valid
+    let user_coord = UserCoord {
+        x: found_x,
+        y: found_y,
+    };
+
+    let visible_gamestate = get_visible_gamestate(&user_coord, username, &game_id, db)?;
     Ok(serde_json::to_string(&visible_gamestate).unwrap())
 }
 
 #[test]
-fn test_get_visible_gamestate() {
+fn test_create_visible_gamestate() {
     let chunks: HashMap<GamestateCoord, GamestateChunk> = HashMap::from([
         (
             GamestateCoord { x: 9, y: 9 },
@@ -332,7 +393,7 @@ fn test_get_visible_gamestate() {
         ),
     ]);
 
-    let visible_gamestate = get_visible_gamestate(GamestateCoord { x: 10, y: 10 }, chunks);
+    let visible_gamestate = create_visible_gamestate(GamestateCoord { x: 10, y: 10 }, chunks);
 
     assert_eq!(
         visible_gamestate,
@@ -353,51 +414,51 @@ fn test_get_visible_gamestate() {
 #[test]
 fn test_user_coord_to_gamestate_coord() {
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 0, y: 0 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 0, y: 0 }, 9),
         GamestateCoord { x: 0, y: 0 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: -7, y: -8 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: -7, y: -8 }, 9),
         GamestateCoord { x: -1, y: -1 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 0, y: -5 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 0, y: -5 }, 9),
         GamestateCoord { x: 0, y: -1 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 5, y: -13 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 5, y: -13 }, 9),
         GamestateCoord { x: 1, y: -1 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: -5, y: 0 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: -5, y: 0 }, 9),
         GamestateCoord { x: -1, y: 0 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 4, y: -4 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 4, y: -4 }, 9),
         GamestateCoord { x: 0, y: 0 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 13, y: -3 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 13, y: -3 }, 9),
         GamestateCoord { x: 1, y: 0 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: -13, y: 6 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: -13, y: 6 }, 9),
         GamestateCoord { x: -1, y: 1 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 1, y: 10 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 1, y: 10 }, 9),
         GamestateCoord { x: 0, y: 1 }
     );
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: 5, y: 9 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: 5, y: 9 }, 9),
         GamestateCoord { x: 1, y: 1 }
     );
 
     assert_eq!(
-        user_coord_to_gamestate_coord(UserCoord { x: -14, y: -14 }, 9),
+        user_coord_to_gamestate_coord(&UserCoord { x: -14, y: -14 }, 9),
         GamestateCoord { x: -2, y: -2 }
     );
 }

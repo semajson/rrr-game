@@ -174,7 +174,7 @@ fn process_valid_request(
                 }
             } else if valid_request.method == GET {
                 // Get the gamestate
-                not_implemented_error
+                rrr_game::get_gamestate(username, valid_request.parameters, game_id, db)
             } else if valid_request.method == DELETE {
                 // Delete the game
                 not_implemented_error
@@ -203,6 +203,7 @@ struct Request {
     sub_resource: Option<String>,
     headers: HashMap<String, String>,
     body: String,
+    parameters: Option<Vec<(String, String)>>,
 }
 
 impl Request {
@@ -233,7 +234,7 @@ impl Request {
         }
 
         // Parse request line
-        let re = Regex::new(r"(?<method>GET|POST|DELETE) (?<resource>/[a-z-]*)(?<id>/[a-z0-9]+)?(?<sub_resource>/[a-z0-9]+)? HTTP/1.1").unwrap();
+        let re = Regex::new(r"(?<method>GET|POST|DELETE) (?<resource>/[a-z-]*)(?<id>/[a-zA-Z0-9]+)?(?<sub_resource>/[a-z0-9]+)?(?<parameters>\?[a-z-0-9=&]+)? HTTP/1.1").unwrap();
         let cap = re.captures_iter(&request_line).last();
 
         if let Some(valid_request) = cap {
@@ -246,6 +247,22 @@ impl Request {
             let resource = valid_request.name("resource").unwrap().as_str().to_string();
             let id: Option<String> = match_to_string(valid_request.name("id"));
             let sub_resource: Option<String> = match_to_string(valid_request.name("sub_resource"));
+            let parameters: Option<String> = match_to_string(valid_request.name("parameters")); // Note - this removes the leading &
+            let parameters = match parameters {
+                Some(raw) => {
+                    let params = raw.split("&").map(String::from).collect::<Vec<String>>();
+
+                    let params = params
+                        .into_iter()
+                        .map(|x| x.split("=").map(String::from).collect::<Vec<String>>())
+                        .filter(|param| param.len() == 2) // This means invalid params are ignored
+                        .map(|param| (param[0].clone(), param[1].clone()))
+                        .collect();
+
+                    Some(params)
+                }
+                None => None,
+            };
 
             let request = Request {
                 method,
@@ -254,6 +271,7 @@ impl Request {
                 sub_resource,
                 headers,
                 body,
+                parameters,
             };
 
             Some(request)
