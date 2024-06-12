@@ -1,5 +1,5 @@
 use regex::Regex;
-use rust_book_server_example::{process_request, LocalDatabase};
+use rust_book_server_example::{process_request, Database, LocalDatabase};
 use std::sync::Arc;
 
 mod util;
@@ -85,5 +85,70 @@ fn test_get_gamestate() {
     assert!(response.body.clone().unwrap().contains("\"terrain\":[["));
     assert!(response.body.clone().unwrap().contains("\"users\":{"));
     assert!(response.body.clone().unwrap().contains("\"G\",\"G\","));
+    assert_eq!(response.status_code, 200);
+}
+
+#[test]
+fn test_make_move() {
+    // Setup
+    let db = Arc::new(LocalDatabase::new());
+    let (user1, _user2) = util::test_users();
+    let request = util::build_request(
+        "POST",
+        "/users",
+        &format!(
+            "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
+            user1.username, user1.email, user1.password
+        ),
+        "",
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = util::parse_response(response);
+    let token = response.token.unwrap();
+
+    // Manually insert a gamestate chunk into the DB
+    let gamestate_chunk = "{
+            \"coord\":
+                {
+                    \"x\":0,
+                    \"y\":0
+                },
+            \"terrain\":
+                [[\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"],
+                [\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\",\"G\"]],
+            \"users\":
+                {
+                    \"james\":
+                        {
+                            \"x\":0,
+                            \"y\":0
+                        }
+                }
+            }";
+    db.set(
+        "rrr-game:1234567:0-0".to_string(),
+        gamestate_chunk.to_string(),
+    );
+
+    // Make move left
+    let request = util::build_request(
+        "POST",
+        "/rrr-game/1234567/actions",
+        &format!("{{\"move\":\"left\"}}"),
+        &token,
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = util::parse_response(response);
+
+    // Verify
+    assert!(response.body.is_some());
+    assert!(response.body.clone().unwrap().contains("\"x\":-1,\"y\"0"));
     assert_eq!(response.status_code, 200);
 }
