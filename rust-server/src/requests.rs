@@ -252,11 +252,11 @@ impl Request {
                 match_to_string_no_leading_char(valid_request.name("parameters"));
             let parameters = match parameters {
                 Some(raw) => {
-                    let params = raw.split("&").map(String::from).collect::<Vec<String>>();
+                    let params = raw.split('&').map(String::from).collect::<Vec<String>>();
 
                     let params = params
                         .into_iter()
-                        .map(|x| x.split("=").map(String::from).collect::<Vec<String>>())
+                        .map(|x| x.split('=').map(String::from).collect::<Vec<String>>())
                         .filter(|param| param.len() == 2) // This means invalid params are ignored
                         .map(|param| (param[0].clone(), param[1].clone()))
                         .collect();

@@ -235,7 +235,7 @@ fn get_visible_gamestate(
 
     // Get centre gamestatechunk
     let centre_gamestate_chunk = db
-        .get(&(GAME_NAME.to_string() + ":" + &game_id + ":" + &centre_gamestate_coord.id()))
+        .get(&(GAME_NAME.to_string() + ":" + game_id + ":" + &centre_gamestate_coord.id()))
         .unwrap(); // Todo error handling - goes for all unwrap() calls
     let centre_gamestate_chunk: GamestateChunk =
         serde_json::from_str(&centre_gamestate_chunk).unwrap();
@@ -254,7 +254,7 @@ fn get_visible_gamestate(
     let mut chunks = HashMap::from([(centre_gamestate_coord.clone(), centre_gamestate_chunk)]);
     for neighbour in neighbours {
         let neighbour_gamestate_chunk = db
-            .get(&(GAME_NAME.to_string() + ":" + &game_id + ":" + &neighbour.id()))
+            .get(&(GAME_NAME.to_string() + ":" + game_id + ":" + &neighbour.id()))
             .unwrap();
         let neighbour_gamestate_chunk = serde_json::from_str(&neighbour_gamestate_chunk).unwrap();
         chunks.insert(
@@ -274,6 +274,7 @@ pub fn get_gamestate(
     db: Arc<impl Database>,
 ) -> Result<String, HttpError> {
     // Convert the passed in params to Usercoord
+    // todo - maybe ok_or is cleaner here?
     if parameters.is_none() {
         return Err(HttpError {
             code: HttpErrorCode::Error400BadRequest,
@@ -285,12 +286,12 @@ pub fn get_gamestate(
     fn get_int_param(key: &str, parameters: &Vec<(String, String)>) -> Option<i32> {
         let found_parameters = parameters
             .iter()
-            .filter(|(k, v)| key == k)
-            .map(|(k, v)| v.clone())
+            .filter(|(k, _v)| key == k)
+            .map(|(_k, v)| v.clone())
             .collect::<Vec<String>>();
 
         if found_parameters.is_empty() {
-            return None;
+            None
         } else {
             found_parameters[0].parse::<i32>().ok()
         }

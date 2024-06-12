@@ -1,7 +1,5 @@
 use regex::Regex;
-use rust_book_server_example::{process_request, Database, LocalDatabase};
 use std::str;
-use std::sync::Arc;
 
 pub fn build_request(method: &str, url: &str, body: &str, token: &str) -> String {
     let body_length = body.len();

@@ -136,7 +136,7 @@ struct PubUserInfo {
     email: String,
 }
 
-fn get_user_raw(username: &String, db: Arc<impl Database>) -> Result<UserEntry, HttpError> {
+fn get_user_raw(username: &str, db: Arc<impl Database>) -> Result<UserEntry, HttpError> {
     if let Some(user_info) = db.get(username) {
         Ok(serde_json::from_str(&user_info).unwrap())
     } else {
@@ -168,7 +168,7 @@ pub fn get_user_curr_game_info(
     game: &str,
 ) -> Result<Option<UserGameInfo>, HttpError> {
     // Get user
-    let user_info: UserEntry = get_user_raw(&username, db)?;
+    let user_info: UserEntry = get_user_raw(username, db)?;
 
     Ok(user_info.current_games.get(game).map(|x| x.clone()))
 }

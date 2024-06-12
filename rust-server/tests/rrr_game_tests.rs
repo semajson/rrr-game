@@ -1,6 +1,5 @@
 use regex::Regex;
-use rust_book_server_example::{process_request, Database, LocalDatabase};
-use std::str;
+use rust_book_server_example::{process_request, LocalDatabase};
 use std::sync::Arc;
 
 mod util;
@@ -21,7 +20,7 @@ fn get_game_id(body: &String) -> String {
 fn test_create_rrr_game() {
     // Setup
     let db = Arc::new(LocalDatabase::new());
-    let (user1, user2) = util::test_users();
+    let (user1, _user2) = util::test_users();
     let request = util::build_request(
         "POST",
         "/users",
@@ -53,7 +52,7 @@ fn test_create_rrr_game() {
 fn test_get_gamestate() {
     // Setup
     let db = Arc::new(LocalDatabase::new());
-    let (user1, user2) = util::test_users();
+    let (user1, _user2) = util::test_users();
     let request = util::build_request(
         "POST",
         "/users",
