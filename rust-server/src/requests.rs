@@ -152,10 +152,16 @@ fn process_valid_request(
             // Request for existing game
 
             if let Some(sub_resource) = valid_request.sub_resource.clone() {
-                if sub_resource == "moves" {
+                if sub_resource == "actions" {
                     if valid_request.method == POST {
                         // Make a move
-                        not_implemented_error
+                        rrr_game::do_action(
+                            username,
+                            valid_request.body,
+                            valid_request.parameters,
+                            game_id,
+                            db,
+                        )
                     } else {
                         not_found_error
                     }

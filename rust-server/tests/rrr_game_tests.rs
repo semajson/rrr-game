@@ -137,11 +137,11 @@ fn test_make_move() {
         gamestate_chunk.to_string(),
     );
 
-    // Make move left
+    // Make move East
     let request = util::build_request(
         "POST",
-        "/rrr-game/1234567/actions",
-        &format!("{{\"move\":\"left\"}}"),
+        "/rrr-game/1234567/actions?x=0&y=0",
+        &format!("{{\"move\":\"East\"}}"),
         &token,
     );
     let response = process_request(request, Arc::clone(&db));
@@ -149,6 +149,66 @@ fn test_make_move() {
 
     // Verify
     assert!(response.body.is_some());
-    assert!(response.body.clone().unwrap().contains("\"x\":-1,\"y\"0"));
+    assert!(response.body.clone().unwrap().contains("\"x\":1,\"y\":0"));
+    assert_eq!(response.status_code, 200);
+
+    // Make move East
+    let request = util::build_request(
+        "POST",
+        "/rrr-game/1234567/actions?x=0&y=0",
+        &format!("{{\"move\":\"East\"}}"),
+        &token,
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = util::parse_response(response);
+
+    // Verify
+    assert!(response.body.is_some());
+    assert!(response.body.clone().unwrap().contains("\"x\":2,\"y\":0"));
+    assert_eq!(response.status_code, 200);
+
+    // Make move South
+    let request = util::build_request(
+        "POST",
+        "/rrr-game/1234567/actions?x=0&y=0",
+        &format!("{{\"move\":\"South\"}}"),
+        &token,
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = util::parse_response(response);
+
+    // Verify
+    assert!(response.body.is_some());
+    assert!(response.body.clone().unwrap().contains("\"x\":2,\"y\":1"));
+    assert_eq!(response.status_code, 200);
+
+    // Make move West
+    let request = util::build_request(
+        "POST",
+        "/rrr-game/1234567/actions?x=0&y=0",
+        &format!("{{\"move\":\"West\"}}"),
+        &token,
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = util::parse_response(response);
+
+    // Verify
+    assert!(response.body.is_some());
+    assert!(response.body.clone().unwrap().contains("\"x\":1,\"y\":1"));
+    assert_eq!(response.status_code, 200);
+
+    // Make move Noth
+    let request = util::build_request(
+        "POST",
+        "/rrr-game/1234567/actions?x=0&y=0",
+        &format!("{{\"move\":\"North\"}}"),
+        &token,
+    );
+    let response = process_request(request, Arc::clone(&db));
+    let response = util::parse_response(response);
+
+    // Verify
+    assert!(response.body.is_some());
+    assert!(response.body.clone().unwrap().contains("\"x\":1,\"y\":0"));
     assert_eq!(response.status_code, 200);
 }
