@@ -431,14 +431,19 @@ pub fn do_action(
         },
     };
 
-    let rsp = if true {
+    // Todo - deal with going off edge of chunk, requires updating top_left_visible_coord
+    let new_relative_x = new_user_coord.x - (top_left_visible_coord.x + (CHUNK_LENGTH as i32));
+    let new_relative_y = new_user_coord.y - (top_left_visible_coord.y + (CHUNK_LENGTH as i32));
+    assert!(new_relative_x > 0);
+    assert!(new_relative_y > 0);
+    let new_relative_x = new_relative_x as usize;
+    let new_relative_y = new_relative_y as usize;
+    let rsp = if gamestate_chunk.terrain[new_relative_y][new_relative_x] == TILE_GRASS {
         // Move is valid
 
         gamestate_chunk
             .users
             .insert(username, new_user_coord.clone());
-
-        // Todo - deal with going off edge of chunk
 
         // Write to DB
         db.set(
