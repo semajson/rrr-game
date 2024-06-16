@@ -152,7 +152,7 @@ fn test_make_move() {
     assert!(response.body.clone().unwrap().contains("\"x\":1,\"y\":0"));
     assert_eq!(response.status_code, 200);
 
-    // Make move East
+    // Make move East again
     let request = util::build_request(
         "POST",
         "/rrr-game/1234567/actions?x=0&y=0",

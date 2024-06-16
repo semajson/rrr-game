@@ -18,6 +18,9 @@ impl GamestateCoord {
 }
 
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
+// (0,0) user coord cooresponds to centre of the (0,0) gamestate chunk.
+// Gamestate chunk side length must always be odd, to ensure a centre
+// user coord position exists.
 struct UserCoord {
     x: i32,
     y: i32,
@@ -26,7 +29,8 @@ struct UserCoord {
 const GAME_NAME: &str = "rrr-game";
 
 const CHUNK_LENGTH: usize = 9;
-const GRASS: char = 'G';
+const TILE_GRASS: char = 'G';
+const TILE_ROCK: char = 'R';
 
 #[derive(Serialize, Deserialize, Clone)]
 struct GamestateChunk {
@@ -43,7 +47,7 @@ impl GamestateChunk {
         username: &String,
         user_coord: Option<UserCoord>,
     ) -> GamestateChunk {
-        let terrain = vec![vec![GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
+        let terrain = vec![vec![TILE_GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
         let mut users = HashMap::new();
 
         if let Some(user_coord) = user_coord {
@@ -84,6 +88,7 @@ struct VisibleGamestate {
 struct CreateGameRsp {
     game_id: String,
     user_coord: UserCoord,
+    top_left_visible_coord: UserCoord,
     visible_gamestate: VisibleGamestate, // Todo - decide if want to do this or not
 }
 
@@ -172,7 +177,11 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
 
     // Create new chunks
     let user_coord = UserCoord { x: 0, y: 0 };
-    let centre_chunk = GamestateChunk::new(centre_chunk_coord, &username, Some(user_coord.clone()));
+    let centre_chunk = GamestateChunk::new(
+        centre_chunk_coord.clone(),
+        &username,
+        Some(user_coord.clone()),
+    );
 
     let neighbours = centre_chunk.get_neighbours();
     let mut chunks = HashMap::from([(centre_chunk.coord.clone(), centre_chunk.clone())]);
@@ -193,9 +202,11 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
 
     // Todo - consider if should hit db here - maybe just to be sure it was written?
     let visible_gamestate = get_visible_gamestate(&user_coord, username, &game_id, db)?;
+    let top_left_visible_coord = get_top_left_visible_coord(&centre_chunk_coord, CHUNK_LENGTH);
     let rsp = CreateGameRsp {
         game_id,
         user_coord,
+        top_left_visible_coord,
         visible_gamestate,
     };
     Ok(serde_json::to_string(&rsp).unwrap())
@@ -222,6 +233,26 @@ fn user_coord_to_gamestate_coord(user_coord: &UserCoord, chunk_length: usize) ->
     GamestateCoord {
         x: chunk_x,
         y: chunk_y,
+    }
+}
+
+fn get_top_left_visible_coord(gamestate_coord: &GamestateCoord, chunk_length: usize) -> UserCoord {
+    let chunk_length = chunk_length as i32;
+    assert!((chunk_length % 2) == 1);
+
+    // Assuming visible == 3*3 chunks
+    let top_left_chunk = GamestateCoord {
+        x: gamestate_coord.x - 1,
+        y: gamestate_coord.y - 1,
+    };
+
+    let diff_to_edge = chunk_length / 2;
+    let top_left_x = (top_left_chunk.x * chunk_length) - diff_to_edge;
+    let top_left_y = (top_left_chunk.y * chunk_length) - diff_to_edge;
+
+    UserCoord {
+        x: top_left_x,
+        y: top_left_y,
     }
 }
 
@@ -329,6 +360,7 @@ struct ActionRq {
 #[derive(Serialize, Deserialize)]
 struct ActionRsp {
     user_coord: UserCoord,
+    top_left_visible_coord: UserCoord,
 }
 
 pub fn do_action(
@@ -355,6 +387,7 @@ pub fn do_action(
     })?;
     let mut user_coord = get_usercoord_from_params(parameters)?;
     let gamestate_coord = user_coord_to_gamestate_coord(&user_coord, CHUNK_LENGTH);
+    let top_left_visible_coord = get_top_left_visible_coord(&gamestate_coord, CHUNK_LENGTH);
 
     // Get the gamestate chunk
     let gamestate_chunk = db
@@ -397,22 +430,34 @@ pub fn do_action(
             y: user_coord.y,
         },
     };
-    gamestate_chunk
-        .users
-        .insert(username, new_user_coord.clone());
 
-    // Todo - deal with going off edge of chunk
+    let rsp = if true {
+        // Move is valid
 
-    // Write to DB
-    db.set(
-        GAME_NAME.to_string() + ":" + &game_id + ":" + &gamestate_chunk.get_id(),
-        serde_json::to_string(&gamestate_chunk).unwrap(),
-    );
+        gamestate_chunk
+            .users
+            .insert(username, new_user_coord.clone());
 
-    // Return
-    // Todo - workout if want to return the gamestate here...
-    let rsp = ActionRsp {
-        user_coord: new_user_coord,
+        // Todo - deal with going off edge of chunk
+
+        // Write to DB
+        db.set(
+            GAME_NAME.to_string() + ":" + &game_id + ":" + &gamestate_chunk.get_id(),
+            serde_json::to_string(&gamestate_chunk).unwrap(),
+        );
+
+        // Return
+        // Todo - workout if want to return the gamestate here...
+        ActionRsp {
+            user_coord: new_user_coord,
+            top_left_visible_coord,
+        }
+    } else {
+        // Move is invalid
+        ActionRsp {
+            user_coord,
+            top_left_visible_coord,
+        }
     };
     Ok(serde_json::to_string(&rsp).unwrap())
 }
@@ -561,5 +606,25 @@ fn test_user_coord_to_gamestate_coord() {
     assert_eq!(
         user_coord_to_gamestate_coord(&UserCoord { x: -14, y: -14 }, 9),
         GamestateCoord { x: -2, y: -2 }
+    );
+}
+
+#[test]
+fn test_get_top_left_visible_coord() {
+    assert_eq!(
+        get_top_left_visible_coord(&GamestateCoord { x: 0, y: 0 }, 9),
+        UserCoord { x: -13, y: -13 }
+    );
+    assert_eq!(
+        get_top_left_visible_coord(&GamestateCoord { x: 1, y: 1 }, 9),
+        UserCoord { x: -4, y: -4 }
+    );
+    assert_eq!(
+        get_top_left_visible_coord(&GamestateCoord { x: 1, y: 0 }, 9),
+        UserCoord { x: -4, y: -13 }
+    );
+    assert_eq!(
+        get_top_left_visible_coord(&GamestateCoord { x: -1, y: -1 }, 9),
+        UserCoord { x: -22, y: -22 }
     );
 }

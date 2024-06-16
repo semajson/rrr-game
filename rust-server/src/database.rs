@@ -8,7 +8,7 @@ pub trait Database {
 }
 
 pub struct LocalDatabase {
-    map: Mutex<HashMap<String, String>>, // todo - shoud this be string?
+    map: Mutex<HashMap<String, String>>,
 }
 impl LocalDatabase {
     pub fn new() -> LocalDatabase {
