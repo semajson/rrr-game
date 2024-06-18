@@ -1,10 +1,7 @@
-use crate::{
-    requests::{HttpError, HttpErrorCode},
-    users, Database,
-};
-use rand::{distributions::Alphanumeric, Rng}; // 0.8
+use crate::requests::{HttpError, HttpErrorCode};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+
+// Todo - worry about the privacy stuff
 
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
 pub struct GamestateCoord {

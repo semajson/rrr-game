@@ -1,9 +1,8 @@
 use crate::{
     requests::{HttpError, HttpErrorCode},
     rrr_game::{coord, create, get, CHUNK_LENGTH, GAME_NAME},
-    users, Database,
+    Database,
 };
-use rand::{distributions::Alphanumeric, Rng}; // 0.8
 
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
