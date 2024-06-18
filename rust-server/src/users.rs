@@ -163,12 +163,12 @@ pub fn get_user(username: String, db: Arc<impl Database>) -> Result<String, Http
 }
 
 pub fn get_user_curr_game_info(
-    username: &String,
+    username: &str,
     db: Arc<impl Database>,
     game: &str,
 ) -> Result<Option<UserGameInfo>, HttpError> {
     // Get user
     let user_info: UserEntry = get_user_raw(username, db)?;
 
-    Ok(user_info.current_games.get(game).map(|x| x.clone()))
+    Ok(user_info.current_games.get(game).cloned())
 }

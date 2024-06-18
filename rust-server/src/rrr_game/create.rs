@@ -22,14 +22,14 @@ impl GamestateChunk {
     }
     fn new(
         coord: coord::GamestateCoord,
-        username: &String,
+        username: &str,
         user_coord: Option<coord::UserCoord>,
     ) -> GamestateChunk {
         let terrain = vec![vec![TILE_GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
         let mut users = HashMap::new();
 
         if let Some(user_coord) = user_coord {
-            users.insert(username.clone(), user_coord);
+            users.insert(username.to_owned(), user_coord);
         }
 
         GamestateChunk {

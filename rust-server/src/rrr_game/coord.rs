@@ -76,7 +76,7 @@ pub fn get_top_left_visible_coord(
 pub fn get_usercoord_from_params(
     parameters: Vec<(String, String)>,
 ) -> Result<UserCoord, HttpError> {
-    fn get_int_param(key: &str, parameters: &Vec<(String, String)>) -> Option<i32> {
+    fn get_int_param(key: &str, parameters: &[(String, String)]) -> Option<i32> {
         let found_parameters = parameters
             .iter()
             .filter(|(k, _v)| key == k)
