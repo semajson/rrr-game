@@ -1,12 +1,10 @@
 use crate::{
-    requests::{HttpError, HttpErrorCode},
+    http::{HttpError, HttpErrorCode},
     rrr_game::{coord, create, CHUNK_LENGTH, GAME_NAME},
     Database,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-// use rrr_game::coord::{UserCoord};
 
 #[derive(Serialize, Deserialize)]
 enum Move {

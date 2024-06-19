@@ -1,5 +1,5 @@
 use crate::{
-    requests::{HttpError, HttpErrorCode},
+    http::{HttpError, HttpErrorCode},
     rrr_game::{coord, get, CHUNK_LENGTH, GAME_NAME},
     users, Database,
 };

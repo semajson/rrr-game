@@ -1,4 +1,4 @@
-use crate::requests::{HttpError, HttpErrorCode};
+use crate::http::{HttpError, HttpErrorCode};
 use serde::{Deserialize, Serialize};
 
 // Todo - worry about the privacy stuff

@@ -4,7 +4,7 @@ use jsonwebtoken::{
     decode, encode, get_current_timestamp, Algorithm, DecodingKey, EncodingKey, Validation,
 };
 
-use crate::requests::{HttpError, HttpErrorCode};
+use crate::http::{HttpError, HttpErrorCode};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {

@@ -1,7 +1,6 @@
 use crate::{
-    jwt,
-    requests::{HttpError, HttpErrorCode},
-    users, Database,
+    http::{HttpError, HttpErrorCode},
+    jwt, users, Database,
 };
 use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},

@@ -1,6 +1,6 @@
 use crate::{
-    requests::{HttpError, HttpErrorCode},
-    rrr_game::{coord, create, get, CHUNK_LENGTH, GAME_NAME},
+    http::{HttpError, HttpErrorCode},
+    rrr_game::{coord, create, CHUNK_LENGTH, GAME_NAME},
     Database,
 };
 
@@ -12,7 +12,7 @@ pub fn get_visible_gamestate(
     username: String,
     game_id: &String,
     db: Arc<impl Database>,
-) -> Result<get::VisibleGamestate, HttpError> {
+) -> Result<VisibleGamestate, HttpError> {
     let centre_gamestate_coord = coord::user_coord_to_gamestate_coord(user_coord, CHUNK_LENGTH);
 
     // Get centre create::GamestateChunk
@@ -205,7 +205,7 @@ fn test_create_visible_gamestate() {
 
     assert_eq!(
         visible_gamestate,
-        get::VisibleGamestate {
+        VisibleGamestate {
             terrain: vec![
                 vec!['a', 'b', 'c', 'd', 'e', 'f'],
                 vec!['A', 'B', 'C', 'D', 'E', 'F'],
