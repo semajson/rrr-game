@@ -2,9 +2,35 @@ use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub const GET: &str = "GET";
-pub const POST: &str = "POST";
-pub const DELETE: &str = "DELETE";
+#[derive(Debug)]
+pub enum HttpMethod {
+    GET,
+    POST,
+    DELETE,
+    OPTIONS,
+}
+impl HttpMethod {
+    fn as_str(&self) -> &'static str {
+        match self {
+            HttpMethod::GET => "GET",
+            HttpMethod::POST => "POST",
+            HttpMethod::OPTIONS => "OPTIONS",
+            HttpMethod::DELETE => "DELETE",
+        }
+    }
+    fn new(raw: &str) -> HttpMethod {
+        match raw {
+            "GET" => HttpMethod::GET,
+            "POST" => HttpMethod::POST,
+            "OPTIONS" => HttpMethod::OPTIONS,
+            "DELETE" => HttpMethod::DELETE,
+            _ => panic!(
+                "Received invalid method {} - this should be impossible",
+                raw
+            ),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum HttpErrorCode {
@@ -42,8 +68,11 @@ pub fn build_response(response_body: Result<String, HttpError>) -> String {
 
     let length = rsp_body.len();
     let response = format!("HTTP/1.1 {rsp_status}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
+    println!("{:?}\n", response); // Todo - logging
     response
 }
+
+// pub fn build_options_response(allowed_methods: Vec<)
 
 #[derive(Serialize, Deserialize)]
 struct ErrorMsg {
@@ -63,7 +92,7 @@ pub struct HttpError {
 
 #[derive(Debug)]
 pub struct Request {
-    pub method: String,
+    pub method: HttpMethod,
     pub resource: String,
     pub id: Option<String>,
     pub sub_resource: Option<String>,
@@ -100,7 +129,7 @@ impl Request {
         }
 
         // Parse request line
-        let re = Regex::new(r"(?<method>GET|POST|DELETE) (?<resource>/[a-z-]*)(?<id>/[a-zA-Z0-9]+)?(?<sub_resource>/[a-z0-9]+)?(?<parameters>\?[a-z-0-9=&]+)? HTTP/1.1").unwrap();
+        let re = Regex::new(r"(?<method>GET|POST|DELETE|OPTIONS) (?<resource>/[a-z-]*)(?<id>/[a-zA-Z0-9]+)?(?<sub_resource>/[a-z0-9]+)?(?<parameters>\?[a-z-0-9=&]+)? HTTP/1.1").unwrap();
         let cap = re.captures_iter(&request_line).last();
 
         if let Some(valid_request) = cap {
@@ -110,6 +139,8 @@ impl Request {
 
             // Method and root must be present if the regex is matched
             let method = valid_request.name("method").unwrap().as_str().to_string();
+            let method = HttpMethod::new(&method);
+
             let resource = valid_request.name("resource").unwrap().as_str().to_string();
             let id: Option<String> = match_to_string_no_leading_char(valid_request.name("id"));
             let sub_resource: Option<String> =

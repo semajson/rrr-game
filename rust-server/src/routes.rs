@@ -1,6 +1,6 @@
 use crate::{
     http,
-    http::{HttpError, HttpErrorCode},
+    http::{HttpError, HttpErrorCode, HttpMethod},
     jwt, rrr_game, users, Database,
 };
 use std::sync::Arc;
@@ -9,7 +9,11 @@ const USERS: &str = "/users";
 const SESSIONS: &str = "/sessions";
 const RRR_GAME: &str = "/rrr-game";
 
+const RRR_GAME_PLAYERS: &str = "players";
+const RRR_GAME_ACTIONS: &str = "actions";
+
 pub fn process_request(request: String, db: Arc<impl Database>) -> String {
+    println!("{:?}\n ", request); // todo logging
     let request = http::Request::new(request);
 
     let response_body = if let Some(valid_request) = request {
@@ -46,31 +50,46 @@ fn process_valid_request(
 
     // Sessions
     if valid_request.resource == SESSIONS && valid_request.id.is_none() {
-        if valid_request.method == http::POST {
-            return users::login(valid_request.body, db);
-        }
+        match valid_request.method {
+            HttpMethod::POST => return users::login(valid_request.body, db),
+            _ => (),
+        };
     } else if valid_request.resource == USERS && valid_request.id.is_none() {
-        if valid_request.method == http::POST {
-            return users::create_user(valid_request.body, db);
-        }
+        match valid_request.method {
+            HttpMethod::POST => return users::create_user(valid_request.body, db),
+            _ => (),
+        };
     }
+
+    //     if valid_request.method == http::POST {
+    //         return users::create_user(valid_request.body, db);
+    //     } else if valid_request.method == http::OPTIONS {
+    //         return;
+    //     }
+    // }
 
     //
     // Routes with auth
     //
 
     // Auth check
-    let token = valid_request.headers.get("Authorization").unwrap(); // todo error handling
+    let token = match valid_request.headers.get("Authorization") {
+        Some(val) => val,
+        None => {
+            return Err(HttpError {
+                code: HttpErrorCode::Error403Forbidden,
+                message: "You must be logged in.".to_string(),
+            })
+        }
+    };
+
     let username = jwt::validate_jwt(token, &"test".to_string())?;
 
     // Sessions
     if valid_request.resource == SESSIONS {
-        if valid_request.method == http::DELETE {
-            // Probably will never implement, as for jwt this is a pain
-            not_implemented_error
-        } else {
-            not_found_error
-        }
+        // Could support DELETE, but that is unlikely to every happen as this is
+        // fiddly for sessions.
+        not_found_error
     }
     // Users
     else if valid_request.resource == USERS {
@@ -81,15 +100,9 @@ fn process_valid_request(
                     message: "You are not authorized to access this user.".to_string(),
                 });
             }
-
-            if valid_request.method == http::GET {
-                users::get_user(username, db)
-            } else if valid_request.method == http::POST {
-                not_implemented_error
-            } else if valid_request.method == http::DELETE {
-                not_implemented_error
-            } else {
-                not_found_error
+            match valid_request.method {
+                HttpMethod::GET => users::get_user(username, db),
+                _ => not_implemented_error,
             }
         } else {
             not_found_error
@@ -100,52 +113,57 @@ fn process_valid_request(
         if let Some(game_id) = valid_request.id {
             // Request for existing game
 
-            if let Some(sub_resource) = valid_request.sub_resource.clone() {
-                if sub_resource == "actions" {
-                    if valid_request.method == http::POST {
-                        // Make a move
-                        rrr_game::do_action(
+            if let Some(sub_resource) = valid_request.sub_resource {
+                match sub_resource.as_str() {
+                    RRR_GAME_ACTIONS => match valid_request.method {
+                        HttpMethod::POST => rrr_game::do_action(
                             username,
                             valid_request.body,
                             valid_request.parameters,
                             game_id,
                             db,
-                        )
-                    } else {
-                        not_found_error
+                        ),
+                        _ => not_found_error,
+                    },
+                    RRR_GAME_PLAYERS => {
+                        match valid_request.method {
+                            HttpMethod::POST => {
+                                // join game
+                                not_implemented_error
+                            }
+                            HttpMethod::DELETE => {
+                                // leave game
+                                not_implemented_error
+                            }
+                            _ => not_found_error,
+                        }
                     }
-                } else if sub_resource == "players" {
-                    if valid_request.method == http::POST {
-                        // Join game
-                        not_implemented_error
-                    } else if valid_request.method == http::DELETE {
-                        // Leave game
-                        not_implemented_error
-                    } else {
-                        not_found_error
-                    }
-                } else {
-                    not_found_error
+                    _ => not_found_error,
                 }
-            } else if valid_request.method == http::GET {
-                // Get the gamestate
-                rrr_game::get_gamestate(username, valid_request.parameters, game_id, db)
-            } else if valid_request.method == http::DELETE {
-                // Delete the game
-                not_implemented_error
             } else {
-                not_found_error
+                match valid_request.method {
+                    HttpMethod::GET => {
+                        rrr_game::get_gamestate(username, valid_request.parameters, game_id, db)
+                    }
+                    HttpMethod::DELETE => {
+                        // Delete the game
+                        not_implemented_error
+                    }
+                    _ => not_found_error,
+                }
             }
-        } else if valid_request.method == http::POST {
-            // Create game
-            rrr_game::create_game(username, db)
-        } else if valid_request.method == http::GET {
-            // Get list of available games - probably won't do
-            not_implemented_error
         } else {
-            not_found_error
+            match valid_request.method {
+                HttpMethod::POST => rrr_game::create_game(username, db),
+                HttpMethod::GET => {
+                    // Get list of available games - probably won't do
+                    not_implemented_error
+                }
+                _ => not_found_error,
+            }
         }
     } else {
+        // Unknown resource
         not_found_error
     }
 }
