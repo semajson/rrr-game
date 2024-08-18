@@ -61,13 +61,6 @@ fn process_valid_request(
         };
     }
 
-    //     if valid_request.method == http::POST {
-    //         return users::create_user(valid_request.body, db);
-    //     } else if valid_request.method == http::OPTIONS {
-    //         return;
-    //     }
-    // }
-
     //
     // Routes with auth
     //
@@ -113,46 +106,49 @@ fn process_valid_request(
         if let Some(game_id) = valid_request.id {
             // Request for existing game
 
-            if let Some(sub_resource) = valid_request.sub_resource {
-                match sub_resource.as_str() {
-                    RRR_GAME_ACTIONS => match valid_request.method {
-                        HttpMethod::POST => rrr_game::do_action(
-                            username,
-                            valid_request.body,
-                            valid_request.parameters,
-                            game_id,
-                            db,
-                        ),
-                        _ => not_found_error,
-                    },
-                    RRR_GAME_PLAYERS => {
-                        match valid_request.method {
-                            HttpMethod::POST => {
-                                // join game
-                                not_implemented_error
-                            }
-                            HttpMethod::DELETE => {
-                                // leave game
-                                not_implemented_error
-                            }
-                            _ => not_found_error,
+            // Todo, do I need to check user is in game?
+
+            let sub_resource = valid_request.sub_resource.as_deref();
+            match sub_resource {
+                Some(RRR_GAME_ACTIONS) => match valid_request.method {
+                    HttpMethod::POST => rrr_game::do_action(
+                        username,
+                        valid_request.body,
+                        valid_request.parameters,
+                        game_id,
+                        db,
+                    ),
+                    _ => not_found_error,
+                },
+                Some(RRR_GAME_PLAYERS) => {
+                    match valid_request.method {
+                        HttpMethod::POST => {
+                            // join game
+                            not_implemented_error
                         }
+                        HttpMethod::DELETE => {
+                            // leave game
+                            not_implemented_error
+                        }
+                        _ => not_found_error,
                     }
-                    _ => not_found_error,
                 }
-            } else {
-                match valid_request.method {
-                    HttpMethod::GET => {
-                        rrr_game::get_gamestate(username, valid_request.parameters, game_id, db)
+                Some(_) => not_found_error,
+                None => {
+                    match valid_request.method {
+                        HttpMethod::GET => {
+                            rrr_game::get_gamestate(username, valid_request.parameters, game_id, db)
+                        }
+                        HttpMethod::DELETE => {
+                            // Delete the game
+                            not_implemented_error
+                        }
+                        _ => not_found_error,
                     }
-                    HttpMethod::DELETE => {
-                        // Delete the game
-                        not_implemented_error
-                    }
-                    _ => not_found_error,
                 }
             }
         } else {
+            // No game_id specified
             match valid_request.method {
                 HttpMethod::POST => rrr_game::create_game(username, db),
                 HttpMethod::GET => {
