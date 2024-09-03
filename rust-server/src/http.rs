@@ -44,35 +44,64 @@ pub enum HttpErrorCode {
     Error503ServiceUnavailable,
 }
 
-pub fn build_response(response_body: Result<String, HttpError>) -> String {
-    let (rsp_status, rsp_body) = match response_body {
-        Ok(body) => ("200 OK", body),
+pub fn build_response(response_body: Result<Response, HttpError>) -> String {
+    let response = match response_body {
+        Ok(response) => response,
         Err(error) => {
             let error_body = error_body(error.message);
-            match error.code {
-                HttpErrorCode::Error400BadRequest => ("400 Bad request", error_body),
-                HttpErrorCode::Error401Unauthorized => ("401 Unauthorized", error_body),
-                HttpErrorCode::Error403Forbidden => ("403 Forbidden", error_body),
-                HttpErrorCode::Error404NotFround => ("404 Not found", error_body),
-                HttpErrorCode::Error409Conflict => ("409 Conflict", error_body),
-                HttpErrorCode::Error501NotImplemented => ("501 Not implemented", error_body),
-                HttpErrorCode::Error503ServiceUnavailable => {
-                    ("503 Service unavailable", error_body)
-                }
+            let error_status = match error.code {
+                HttpErrorCode::Error400BadRequest => "400 Bad request".to_string(),
+                HttpErrorCode::Error401Unauthorized => "401 Unauthorized".to_string(),
+                HttpErrorCode::Error403Forbidden => "403 Forbidden".to_string(),
+                HttpErrorCode::Error404NotFround => "404 Not found".to_string(),
+                HttpErrorCode::Error409Conflict => "409 Conflict".to_string(),
+                HttpErrorCode::Error501NotImplemented => "501 Not implemented".to_string(),
+                HttpErrorCode::Error503ServiceUnavailable => "503 Service unavailable".to_string(),
                 HttpErrorCode::Error500InternalServerError => {
-                    ("500 Internal Server Error", error_body)
+                    "500 Internal Server Error".to_string()
                 }
+            };
+            Response {
+                body: error_body,
+                status: error_status,
+                headers: None,
             }
         }
     };
 
-    let length = rsp_body.len();
-    let response = format!("HTTP/1.1 {rsp_status}\r\nContent-Length: {length}\r\n\r\n{rsp_body}");
+    let length = response.body.len();
+    let response_status = response.status;
+    let response_body = response.body;
+
+    let response =
+        format!("HTTP/1.1 {response_status}\r\nContent-Length: {length}\r\n\r\n{response_body}");
     println!("{:?}\n", response); // Todo - logging
     response
 }
 
-// pub fn build_options_response(allowed_methods: Vec<)
+pub fn build_options_response_headers(allowed_methods: Vec<HttpMethod>) -> HashMap<String, String> {
+    let allowed_methods = allowed_methods
+        .iter()
+        .map(|method| method.as_str())
+        .collect::<Vec<&str>>();
+    let allowed_methods = allowed_methods.join(", ");
+
+    let mut headers = HashMap::new();
+
+    headers.insert("Connection".to_string(), "keep-alive".to_string());
+    headers.insert(
+        "Access-Control-Allow-Origin".to_string(),
+        "http://localhost".to_string(),
+    );
+    headers.insert("Access-Control-Allow-Methods".to_string(), allowed_methods);
+    headers.insert(
+        "Access-Control-Allow-Headers".to_string(),
+        "keep-alive".to_string(),
+    );
+    headers.insert("Access-Control-Max-Age".to_string(), "86400".to_string());
+
+    headers
+}
 
 #[derive(Serialize, Deserialize)]
 struct ErrorMsg {
@@ -177,5 +206,20 @@ impl Request {
         } else {
             None
         }
+    }
+}
+
+pub struct Response {
+    pub status: String,
+    pub body: String,
+    pub headers: Option<HashMap<String, String>>,
+}
+impl Response {
+    pub fn response_from_body(body: Result<String, HttpError>) -> Result<Response, HttpError> {
+        Ok(Response {
+            body: body?,
+            headers: None,
+            status: "200 OK".to_string(),
+        })
     }
 }

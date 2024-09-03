@@ -223,28 +223,28 @@ fn test_token() {
 fn test_users_options() {
     // Given
     let db = Arc::new(LocalDatabase::new());
-    let request = "OPTIONS /users HTTP/1.1
-\r\nHost: localhost:7878
-\r\nConnection: keep-alive
-\r\nAccept: */*
-\r\nAccess-Control-Request-Method: POST
-\r\nAccess-Control-Request-Headers: content-type
-\r\nOrigin: null
-\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36
-\r\nSec-Fetch-Mode: cors
-\r\nSec-Fetch-Site: cross-site
-\r\nSec-Fetch-Dest: empty
-\r\nAccept-Encoding: gzip, deflate, br, zstd
-\r\nAccept-Language: en-GB,en-US;q=0.9,en;q=0.8
-\r\n
-\r\n".to_string();
+    let request = "OPTIONS /users HTTP/1.1\r
+Host: localhost:7878\r
+Connection: keep-alive\r
+Accept: */*\r
+Access-Control-Request-Method: POST\r
+Access-Control-Request-Headers: content-type\r
+Origin: null\r
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36\r
+Sec-Fetch-Mode: cors\r
+Sec-Fetch-Site: cross-site\r
+Sec-Fetch-Dest: empty\r
+Accept-Encoding: gzip, deflate, br, zstd\r
+Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r
+\r
+".to_string();
 
     // When
     let response = process_request(request, Arc::clone(&db));
 
     // Then
     let response = util::parse_response(response);
-    assert_eq!(response.status_code, 204);
+    assert_eq!(response.status_code, 200);
 }
 
 // TODO: tests

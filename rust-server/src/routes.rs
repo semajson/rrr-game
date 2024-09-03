@@ -1,6 +1,5 @@
 use crate::{
-    http,
-    http::{HttpError, HttpErrorCode, HttpMethod},
+    http::{self, HttpError, HttpErrorCode, HttpMethod, Response},
     jwt, rrr_game, users, Database,
 };
 use std::sync::Arc;
@@ -16,7 +15,7 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     println!("{:?}\n ", request); // todo logging
     let request = http::Request::new(request);
 
-    let response_body = if let Some(valid_request) = request {
+    let response = if let Some(valid_request) = request {
         process_valid_request(valid_request, db)
     } else {
         // The request wasn't valid
@@ -27,13 +26,13 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
         })
     };
 
-    http::build_response(response_body)
+    http::build_response(response)
 }
 
 fn process_valid_request(
     valid_request: http::Request,
     db: Arc<impl Database>,
-) -> Result<String, HttpError> {
+) -> Result<Response, HttpError> {
     let not_found_error = Err(HttpError {
         code: HttpErrorCode::Error404NotFround,
         message: "Route not found".to_string(),
@@ -51,12 +50,27 @@ fn process_valid_request(
     // Sessions
     if valid_request.resource == SESSIONS && valid_request.id.is_none() {
         match valid_request.method {
-            HttpMethod::POST => return users::login(valid_request.body, db),
+            HttpMethod::POST => {
+                return Response::response_from_body(users::login(valid_request.body, db))
+            }
             _ => (),
         };
     } else if valid_request.resource == USERS && valid_request.id.is_none() {
         match valid_request.method {
-            HttpMethod::POST => return users::create_user(valid_request.body, db),
+            HttpMethod::POST => {
+                return Response::response_from_body(users::create_user(valid_request.body, db))
+            }
+            HttpMethod::OPTIONS => {
+                return Ok(Response {
+                    body: "".to_string(),
+                    headers: Some(http::build_options_response_headers(vec![
+                        HttpMethod::OPTIONS,
+                        HttpMethod::POST,
+                    ])),
+                    status: "200 OK".to_string(),
+                });
+            }
+
             _ => (),
         };
     }
@@ -94,7 +108,7 @@ fn process_valid_request(
                 });
             }
             match valid_request.method {
-                HttpMethod::GET => users::get_user(username, db),
+                HttpMethod::GET => Response::response_from_body(users::get_user(username, db)),
                 _ => not_implemented_error,
             }
         } else {
@@ -111,13 +125,13 @@ fn process_valid_request(
             let sub_resource = valid_request.sub_resource.as_deref();
             match sub_resource {
                 Some(RRR_GAME_ACTIONS) => match valid_request.method {
-                    HttpMethod::POST => rrr_game::do_action(
+                    HttpMethod::POST => Response::response_from_body(rrr_game::do_action(
                         username,
                         valid_request.body,
                         valid_request.parameters,
                         game_id,
                         db,
-                    ),
+                    )),
                     _ => not_found_error,
                 },
                 Some(RRR_GAME_PLAYERS) => {
@@ -136,9 +150,12 @@ fn process_valid_request(
                 Some(_) => not_found_error,
                 None => {
                     match valid_request.method {
-                        HttpMethod::GET => {
-                            rrr_game::get_gamestate(username, valid_request.parameters, game_id, db)
-                        }
+                        HttpMethod::GET => Response::response_from_body(rrr_game::get_gamestate(
+                            username,
+                            valid_request.parameters,
+                            game_id,
+                            db,
+                        )),
                         HttpMethod::DELETE => {
                             // Delete the game
                             not_implemented_error
@@ -150,7 +167,9 @@ fn process_valid_request(
         } else {
             // No game_id specified
             match valid_request.method {
-                HttpMethod::POST => rrr_game::create_game(username, db),
+                HttpMethod::POST => {
+                    Response::response_from_body(rrr_game::create_game(username, db))
+                }
                 HttpMethod::GET => {
                     // Get list of available games - probably won't do
                     not_implemented_error
