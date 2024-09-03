@@ -42,7 +42,7 @@ pub fn create_user(body: String, db: Arc<impl Database>) -> Result<String, HttpE
     } else {
         return Err(HttpError {
             code: HttpErrorCode::Error400BadRequest,
-            message: "Request body has invalid format.".to_string(),
+            message: "Create user request body has invalid format.".to_string(),
         });
     };
 
@@ -93,7 +93,7 @@ pub fn login(body: String, db: Arc<impl Database>) -> Result<String, HttpError> 
     } else {
         return Err(HttpError {
             code: HttpErrorCode::Error400BadRequest,
-            message: "Request body has invalid format.".to_string(),
+            message: "Login request body has invalid format.".to_string(),
         });
     };
 

@@ -8,7 +8,7 @@ function doLogin(event) {
   const username = document.getElementById("loginUsername").value;
   const password = document.getElementById("loginPassword").value;
 
-  fetch("http://localhost:7878/users", {
+  fetch("http://localhost:7878/sessions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

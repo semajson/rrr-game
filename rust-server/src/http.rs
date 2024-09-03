@@ -64,7 +64,7 @@ pub fn build_response(response_body: Result<Response, HttpError>) -> String {
             Response {
                 body: error_body,
                 status: error_status,
-                headers: None,
+                headers: HashMap::new(),
             }
         }
     };
@@ -73,10 +73,16 @@ pub fn build_response(response_body: Result<Response, HttpError>) -> String {
     let response_status = response.status;
     let response_body = response.body;
 
-    let response =
-        format!("HTTP/1.1 {response_status}\r\nContent-Length: {length}\r\n\r\n{response_body}");
-    println!("{:?}\n", response); // Todo - logging
-    response
+    let mut response_raw = format!("HTTP/1.1 {response_status}\r\n");
+
+    for (header, value) in &response.headers {
+        response_raw += &format!("{header}: {value}\r\n");
+    }
+
+    response_raw += &format!("Content-Length: {length}\r\n\r\n{response_body}");
+
+    println!("{:?}\n", response_raw); // Todo - logging
+    response_raw
 }
 
 pub fn build_options_response_headers(allowed_methods: Vec<HttpMethod>) -> HashMap<String, String> {
@@ -91,12 +97,12 @@ pub fn build_options_response_headers(allowed_methods: Vec<HttpMethod>) -> HashM
     headers.insert("Connection".to_string(), "keep-alive".to_string());
     headers.insert(
         "Access-Control-Allow-Origin".to_string(),
-        "http://localhost".to_string(),
+        "http://localhost:5500".to_string(),
     );
     headers.insert("Access-Control-Allow-Methods".to_string(), allowed_methods);
     headers.insert(
         "Access-Control-Allow-Headers".to_string(),
-        "keep-alive".to_string(),
+        "keep-alive, Content-Type".to_string(),
     );
     headers.insert("Access-Control-Max-Age".to_string(), "86400".to_string());
 
@@ -212,13 +218,13 @@ impl Request {
 pub struct Response {
     pub status: String,
     pub body: String,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: HashMap<String, String>,
 }
 impl Response {
     pub fn response_from_body(body: Result<String, HttpError>) -> Result<Response, HttpError> {
         Ok(Response {
             body: body?,
-            headers: None,
+            headers: HashMap::new(),
             status: "200 OK".to_string(),
         })
     }

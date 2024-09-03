@@ -53,6 +53,16 @@ fn process_valid_request(
             HttpMethod::POST => {
                 return Response::response_from_body(users::login(valid_request.body, db))
             }
+            HttpMethod::OPTIONS => {
+                return Ok(Response {
+                    body: "".to_string(),
+                    headers: http::build_options_response_headers(vec![
+                        HttpMethod::OPTIONS,
+                        HttpMethod::POST,
+                    ]),
+                    status: "200 OK".to_string(),
+                });
+            }
             _ => (),
         };
     } else if valid_request.resource == USERS && valid_request.id.is_none() {
@@ -63,10 +73,10 @@ fn process_valid_request(
             HttpMethod::OPTIONS => {
                 return Ok(Response {
                     body: "".to_string(),
-                    headers: Some(http::build_options_response_headers(vec![
+                    headers: http::build_options_response_headers(vec![
                         HttpMethod::OPTIONS,
                         HttpMethod::POST,
-                    ])),
+                    ]),
                     status: "200 OK".to_string(),
                 });
             }
