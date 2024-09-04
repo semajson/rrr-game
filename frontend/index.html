@@ -12,8 +12,8 @@
     <div class="login-form">
         <h1>Login</h1>
         <form id="loginForm">
-            <input type="text" id="loginUsername" placeholder="Username" required>
-            <input type="password" id="loginPassword" placeholder="Password" required>
+            <input type="text" id="loginUsername" placeholder="Username"  autocomplete="username" required>
+            <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required>
             <button type="submit">Login</button>
         </form>
     </div>
@@ -21,10 +21,10 @@
     <div class="sign-up-form">
         <h1>Or sign up</h1>
         <form id="signUpForm">
-            <input type="text" id="signUpUsername" placeholder="Username" required>
-            <input type="text" id="signUpEmail" placeholder="Email" required>
-            <input type="password" id="signUpPassword" placeholder="Password" required>
-            <input type="password" id="signUpPasswordRepeat" placeholder="Confirm password" required>
+            <input type="text" id="signUpUsername" placeholder="Username" autocomplete="username" required>
+            <input type="text" id="signUpEmail" placeholder="Email" autocomplete="email" required>
+            <input type="password" id="signUpPassword" placeholder="Password" autocomplete="new-password" required>
+            <input type="password" id="signUpPasswordRepeat" placeholder="Confirm password" autocomplete="new-password" required>
             <button type="submit">Sign up</button>
         </form>
     </div>
