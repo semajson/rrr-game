@@ -44,7 +44,7 @@ pub enum HttpErrorCode {
     Error503ServiceUnavailable,
 }
 
-pub fn build_response(response_body: Result<Response, HttpError>) -> String {
+pub fn get_response(response_body: Result<Response, HttpError>) -> Response {
     let response = match response_body {
         Ok(response) => response,
         Err(error) => {
@@ -69,36 +69,7 @@ pub fn build_response(response_body: Result<Response, HttpError>) -> String {
         }
     };
 
-    let length = response.body.len();
-    let response_status = response.status;
-    let response_body = response.body;
-
-    let mut response_raw = format!("HTTP/1.1 {response_status}\r\n");
-
-    let cors_headers = HashMap::from([
-        ("Connection".to_string(), "keep-alive".to_string()),
-        (
-            "Access-Control-Allow-Origin".to_string(),
-            "http://localhost:5500".to_string(),
-        ),
-        (
-            "Access-Control-Allow-Headers".to_string(),
-            "keep-alive, content-type".to_string(),
-        ),
-        ("Access-Control-Max-Age".to_string(), "86400".to_string()),
-    ]);
-    for (header, value) in &cors_headers {
-        response_raw += &format!("{header}: {value}\r\n");
-    }
-
-    for (header, value) in &response.headers {
-        response_raw += &format!("{header}: {value}\r\n");
-    }
-
-    response_raw += &format!("Content-Length: {length}\r\n\r\n{response_body}");
-
-    println!("{:?}\n", response_raw); // Todo - logging
-    response_raw
+    response
 }
 
 pub fn build_options_response_headers(allowed_methods: Vec<HttpMethod>) -> HashMap<String, String> {
@@ -145,6 +116,8 @@ pub struct Request {
 
 impl Request {
     pub fn new(request: String) -> Option<Request> {
+        println!("{:?}\n ", request); // todo logging
+
         let request = request
             .lines()
             .map(|x| x.to_string())
@@ -234,5 +207,37 @@ impl Response {
             headers: HashMap::new(),
             status: "200 OK".to_string(),
         })
+    }
+    pub fn build_response(&self) -> String {
+        let length = self.body.len();
+        let response_status = self.status.clone();
+        let response_body = self.body.clone();
+
+        let mut response_raw = format!("HTTP/1.1 {response_status}\r\n");
+
+        let cors_headers = HashMap::from([
+            ("Connection".to_string(), "keep-alive".to_string()),
+            (
+                "Access-Control-Allow-Origin".to_string(),
+                "http://localhost:5500".to_string(),
+            ),
+            (
+                "Access-Control-Allow-Headers".to_string(),
+                "keep-alive, content-type".to_string(),
+            ),
+            ("Access-Control-Max-Age".to_string(), "86400".to_string()),
+        ]);
+        for (header, value) in &cors_headers {
+            response_raw += &format!("{header}: {value}\r\n");
+        }
+
+        for (header, value) in &self.headers {
+            response_raw += &format!("{header}: {value}\r\n");
+        }
+
+        response_raw += &format!("Content-Length: {length}\r\n\r\n{response_body}");
+
+        println!("{:?}\n", response_raw); // Todo - logging
+        response_raw
     }
 }

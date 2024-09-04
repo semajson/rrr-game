@@ -12,7 +12,6 @@ const RRR_GAME_PLAYERS: &str = "players";
 const RRR_GAME_ACTIONS: &str = "actions";
 
 pub fn process_request(request: String, db: Arc<impl Database>) -> String {
-    println!("{:?}\n ", request); // todo logging
     let request = http::Request::new(request);
 
     let response = if let Some(valid_request) = request {
@@ -26,7 +25,8 @@ pub fn process_request(request: String, db: Arc<impl Database>) -> String {
         })
     };
 
-    http::build_response(response)
+    let response = http::get_response(response);
+    response.build_response()
 }
 
 fn process_valid_request(
