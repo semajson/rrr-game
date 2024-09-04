@@ -75,6 +75,22 @@ pub fn build_response(response_body: Result<Response, HttpError>) -> String {
 
     let mut response_raw = format!("HTTP/1.1 {response_status}\r\n");
 
+    let cors_headers = HashMap::from([
+        ("Connection".to_string(), "keep-alive".to_string()),
+        (
+            "Access-Control-Allow-Origin".to_string(),
+            "http://localhost:5500".to_string(),
+        ),
+        (
+            "Access-Control-Allow-Headers".to_string(),
+            "keep-alive, content-type".to_string(),
+        ),
+        ("Access-Control-Max-Age".to_string(), "86400".to_string()),
+    ]);
+    for (header, value) in &cors_headers {
+        response_raw += &format!("{header}: {value}\r\n");
+    }
+
     for (header, value) in &response.headers {
         response_raw += &format!("{header}: {value}\r\n");
     }
@@ -86,7 +102,7 @@ pub fn build_response(response_body: Result<Response, HttpError>) -> String {
 }
 
 pub fn build_options_response_headers(allowed_methods: Vec<HttpMethod>) -> HashMap<String, String> {
-    let allowed_methods = allowed_methods
+    let allowed_methods: Vec<&str> = allowed_methods
         .iter()
         .map(|method| method.as_str())
         .collect::<Vec<&str>>();
@@ -95,16 +111,7 @@ pub fn build_options_response_headers(allowed_methods: Vec<HttpMethod>) -> HashM
     let mut headers = HashMap::new();
 
     headers.insert("Connection".to_string(), "keep-alive".to_string());
-    headers.insert(
-        "Access-Control-Allow-Origin".to_string(),
-        "http://localhost:5500".to_string(),
-    );
     headers.insert("Access-Control-Allow-Methods".to_string(), allowed_methods);
-    headers.insert(
-        "Access-Control-Allow-Headers".to_string(),
-        "keep-alive, Content-Type".to_string(),
-    );
-    headers.insert("Access-Control-Max-Age".to_string(), "86400".to_string());
 
     headers
 }

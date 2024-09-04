@@ -243,8 +243,35 @@ Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r
     let response = process_request(request, Arc::clone(&db));
 
     // Then
+    assert!(response.contains("Access-Control-Allow-Origin"));
+    assert!(response.contains("Access-Control-Allow-Headers"));
+    assert!(response.contains("Access-Control-Max-Age"));
     let response = util::parse_response(response);
     assert_eq!(response.status_code, 200);
+}
+
+#[test]
+fn test_cors_headers() {
+    // Given
+    let db = Arc::new(LocalDatabase::new());
+    let (user1, user2) = util::test_users();
+
+    // When
+    let request = util::build_request(
+        "POST",
+        "/users",
+        &format!(
+            "{{\"username\":\"{}\", \"email\":\"{}\", \"password\":\"{}\"}}",
+            user1.username, user1.email, user1.password
+        ),
+        "",
+    );
+    let response = process_request(request, Arc::clone(&db));
+
+    // Then
+    assert!(response.contains("Access-Control-Allow-Origin"));
+    assert!(response.contains("Access-Control-Allow-Headers"));
+    assert!(response.contains("Access-Control-Max-Age"));
 }
 
 // TODO: tests
