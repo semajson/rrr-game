@@ -24,13 +24,27 @@ function doLogin(event) {
     }),
   })
     .then((response) => {
-      console.log("Response is" + response);
+      console.log(response);
+      if (!response.ok) {
+        response.json().then((data) => {
+          console.error("Error body: " + JSON.stringify(data));
+          alert("Error: " + data.error_message);
+        });
+        throw new Error(
+          "status: " + response.status + ", errorcode: " + response.statusText
+        );
+      }
+
+      return response.json();
+    })
+    .then((data) => {
+      console.log(data);
+      console.log(data.access_token);
+      data.access_token;
     })
     .catch((error) => {
       console.error("Error is:", error);
     });
-
-  alert("trying login");
 }
 
 signup_form.addEventListener("submit", doLogin);
