@@ -4,12 +4,12 @@ use crate::{
 };
 use std::sync::Arc;
 
-const USERS: &str = "/users";
-const SESSIONS: &str = "/sessions";
-const RRR_GAME: &str = "/rrr-game";
+const USERS_ROUTE: &str = "/users";
+const SESSIONS_ROUTE: &str = "/sessions";
+const RRR_ROUTE: &str = "/rrr-game";
 
-const RRR_GAME_PLAYERS: &str = "players";
-const RRR_GAME_ACTIONS: &str = "actions";
+const RRR_PLAYERS_ROUTE: &str = "players";
+const RRR_ACTIONS_ROUTE: &str = "actions";
 
 pub fn process_request(request: String, db: Arc<impl Database>) -> String {
     let request = http::Request::new(request);
@@ -48,7 +48,7 @@ fn process_valid_request(
     //
 
     // Sessions
-    if valid_request.resource == SESSIONS && valid_request.id.is_none() {
+    if valid_request.resource == SESSIONS_ROUTE && valid_request.id.is_none() {
         match valid_request.method {
             HttpMethod::POST => {
                 return Response::response_from_body(users::login(valid_request.body, db))
@@ -65,7 +65,7 @@ fn process_valid_request(
             }
             _ => (),
         };
-    } else if valid_request.resource == USERS && valid_request.id.is_none() {
+    } else if valid_request.resource == USERS_ROUTE && valid_request.id.is_none() {
         match valid_request.method {
             HttpMethod::POST => {
                 return Response::response_from_body(users::create_user(valid_request.body, db))
@@ -103,13 +103,13 @@ fn process_valid_request(
     let username = jwt::validate_jwt(token, &"test".to_string())?;
 
     // Sessions
-    if valid_request.resource == SESSIONS {
+    if valid_request.resource == SESSIONS_ROUTE {
         // Could support DELETE, but that is unlikely to every happen as this is
         // fiddly for sessions.
         not_found_error
     }
     // Users
-    else if valid_request.resource == USERS {
+    else if valid_request.resource == USERS_ROUTE {
         if let Some(user_id) = valid_request.id {
             if user_id != username {
                 return Err(HttpError {
@@ -126,7 +126,7 @@ fn process_valid_request(
         }
     }
     // RRR game
-    else if valid_request.resource == RRR_GAME {
+    else if valid_request.resource == RRR_ROUTE {
         if let Some(game_id) = valid_request.id {
             // Request for existing game
 
@@ -134,7 +134,7 @@ fn process_valid_request(
 
             let sub_resource = valid_request.sub_resource.as_deref();
             match sub_resource {
-                Some(RRR_GAME_ACTIONS) => match valid_request.method {
+                Some(RRR_ACTIONS_ROUTE) => match valid_request.method {
                     HttpMethod::POST => Response::response_from_body(rrr_game::do_action(
                         username,
                         valid_request.body,
@@ -144,7 +144,7 @@ fn process_valid_request(
                     )),
                     _ => not_found_error,
                 },
-                Some(RRR_GAME_PLAYERS) => {
+                Some(RRR_PLAYERS_ROUTE) => {
                     match valid_request.method {
                         HttpMethod::POST => {
                             // join game
