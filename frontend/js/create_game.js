@@ -1,27 +1,15 @@
-var signup_form = document.getElementById("signUpForm");
+var login_form = document.getElementById("joinForm");
 
-function doLogin(event) {
+function joinGame(event) {
   event.preventDefault();
-  const username = document.getElementById("signUpUsername").value;
-  const password = document.getElementById("signUpPassword").value;
-  const password_repeat = document.getElementById("signUpPasswordRepeat").value;
-  const email = document.getElementById("signUpEmail").value;
+  const game_id = document.getElementById("joinGameId").value;
 
-  if (password != password_repeat) {
-    alert("Passwords don't match");
-    return;
-  }
-
-  fetch("http://localhost:7878/users", {
+  fetch("http://localhost:7878/rrr-game", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      username: username,
-      email: email,
-      password: password,
-    }),
+    body: "",
   })
     .then((response) => {
       console.log(response);
@@ -47,4 +35,4 @@ function doLogin(event) {
     });
 }
 
-signup_form.addEventListener("submit", doLogin);
+login_form.addEventListener("submit", doLogin);

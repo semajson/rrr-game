@@ -31,9 +31,8 @@ function doLogin(event) {
     })
     .then((data) => {
       console.log(data);
-
-      console.log(data.access_token);
-      data.access_token;
+      sessionStorage.setItem("token", data.access_token);
+      window.location.replace("/game.html");
     })
     .catch((error) => {
       console.error("Error is:", error);
