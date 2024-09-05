@@ -28,7 +28,7 @@ function joinGame(event) {
     .then((data) => {
       console.log(data);
       sessionStorage.setItem("token", data.access_token);
-      window.location.replace("/game.html");
+      window.location.replace("/menu.html");
     })
     .catch((error) => {
       console.error("Error is:", error);
