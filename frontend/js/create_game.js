@@ -3,10 +3,13 @@ var create_game_button = document.getElementById("createGame");
 function createGame(event) {
   event.preventDefault();
 
+  const token = sessionStorage.getItem("token");
+
   fetch("http://localhost:7878/rrr-game", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
     },
     body: "",
   })

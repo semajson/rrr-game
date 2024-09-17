@@ -58,6 +58,9 @@ fn process_valid_request(
                 HttpMethod::POST,
                 HttpMethod::DELETE,
             ]),
+            (RRR_ROUTE, None, None) => {
+                Some(vec![HttpMethod::OPTIONS, HttpMethod::POST, HttpMethod::GET])
+            }
             (_, _, _) => None,
         };
 
