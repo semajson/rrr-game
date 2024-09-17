@@ -82,8 +82,30 @@ fn process_valid_request(
             }
 
             _ => (),
-        };
-    }
+        }
+    } else if valid_request.resource == RRR_ROUTE {
+        if let Some(_) = valid_request.id {
+            let sub_resource = valid_request.sub_resource.as_deref();
+
+            match sub_resource {
+                Some(RRR_PLAYERS_ROUTE) => match valid_request.method {
+                    HttpMethod::OPTIONS => {
+                        return Ok(Response {
+                            body: "".to_string(),
+                            headers: http::build_options_response_headers(vec![
+                                HttpMethod::OPTIONS,
+                                HttpMethod::POST,
+                                HttpMethod::DELETE,
+                            ]),
+                            status: "200 OK".to_string(),
+                        });
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+    };
 
     //
     // Routes with auth
@@ -91,7 +113,15 @@ fn process_valid_request(
 
     // Auth check
     let token = match valid_request.headers.get("Authorization") {
-        Some(val) => val,
+        Some(val) => match val.strip_prefix("Bearer ") {
+            Some(token) => token,
+            None => {
+                return Err(HttpError {
+                    code: HttpErrorCode::Error403Forbidden,
+                    message: "You must be logged in.".to_string(),
+                })
+            }
+        },
         None => {
             return Err(HttpError {
                 code: HttpErrorCode::Error403Forbidden,

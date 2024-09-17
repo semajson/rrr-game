@@ -27,6 +27,9 @@ pub fn create_jwt(username: &str, secret: &String) -> String {
 }
 
 pub fn validate_jwt(token: &str, secret: &String) -> Result<String, HttpError> {
+    println!("Secret {:?}\n", secret);
+    println!("token {:?}\n", token);
+
     // Validate token
     match decode::<Claims>(
         token,

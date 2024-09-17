@@ -1,8 +1,7 @@
-var login_form = document.getElementById("joinForm");
+var create_game_button = document.getElementById("createGame");
 
-function joinGame(event) {
+function createGame(event) {
   event.preventDefault();
-  const game_id = document.getElementById("joinGameId").value;
 
   fetch("http://localhost:7878/rrr-game", {
     method: "POST",
@@ -27,12 +26,12 @@ function joinGame(event) {
     })
     .then((data) => {
       console.log(data);
-      sessionStorage.setItem("token", data.access_token);
-      window.location.replace("/menu.html");
+      // sessionStorage.setItem("token", data.access_token);
+      window.location.replace("/game.html");
     })
     .catch((error) => {
       console.error("Error is:", error);
     });
 }
 
-login_form.addEventListener("submit", doLogin);
+create_game_button.addEventListener("submit", joinGame);

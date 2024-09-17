@@ -9,7 +9,7 @@ pub fn build_request(method: &str, url: &str, body: &str, token: &str) -> String
 User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r
 Host: www.tutorialspoint.com\r
 Content-Type: application/json\r
-Authorization: {token}\r
+Authorization: Bearer {token}\r
 Accept: */*\r
 Connection: Keep-Alive\r
 Content-Length: {body_length}\r

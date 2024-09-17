@@ -223,7 +223,7 @@ impl Response {
             ),
             (
                 "Access-Control-Allow-Headers".to_string(),
-                "keep-alive, content-type".to_string(),
+                "keep-alive, content-type, authorization".to_string(),
             ),
             ("Access-Control-Max-Age".to_string(), "86400".to_string()),
         ]);
