@@ -1,13 +1,14 @@
 use crate::{
-    http::{self, HttpError, HttpErrorCode, HttpMethod, Response},
+    http::{self, HttpError, HttpErrorCode, HttpMethod, Request, Response},
     jwt, rrr_game, users, Database,
 };
 use std::sync::Arc;
 
 const USERS_ROUTE: &str = "/users";
-const SESSIONS_ROUTE: &str = "/sessions";
-const RRR_ROUTE: &str = "/rrr-game";
 
+const SESSIONS_ROUTE: &str = "/sessions";
+
+const RRR_ROUTE: &str = "/rrr-game";
 const RRR_PLAYERS_ROUTE: &str = "players";
 const RRR_ACTIONS_ROUTE: &str = "actions";
 
@@ -43,6 +44,33 @@ fn process_valid_request(
         message: "Method not implemented for route".to_string(),
     });
 
+    // Handle OPTION responses
+    if valid_request.method == HttpMethod::OPTIONS {
+        let allowed_headers = match (
+            valid_request.resource.as_str(),
+            valid_request.id,
+            valid_request.sub_resource.as_deref(),
+        ) {
+            (SESSIONS_ROUTE, None, None) => Some(vec![HttpMethod::OPTIONS, HttpMethod::POST]),
+            (USERS_ROUTE, None, None) => Some(vec![HttpMethod::OPTIONS, HttpMethod::POST]),
+            (RRR_ROUTE, Some(_), Some(RRR_PLAYERS_ROUTE)) => Some(vec![
+                HttpMethod::OPTIONS,
+                HttpMethod::POST,
+                HttpMethod::DELETE,
+            ]),
+            (_, _, _) => None,
+        };
+
+        return match allowed_headers {
+            Some(headers) => Ok(Response {
+                body: "".to_string(),
+                headers: http::build_options_response_headers(headers),
+                status: "200 OK".to_string(),
+            }),
+            None => not_found_error,
+        };
+    }
+
     //
     // Routes with no auth
     //
@@ -53,59 +81,18 @@ fn process_valid_request(
             HttpMethod::POST => {
                 return Response::response_from_body(users::login(valid_request.body, db))
             }
-            HttpMethod::OPTIONS => {
-                return Ok(Response {
-                    body: "".to_string(),
-                    headers: http::build_options_response_headers(vec![
-                        HttpMethod::OPTIONS,
-                        HttpMethod::POST,
-                    ]),
-                    status: "200 OK".to_string(),
-                });
-            }
             _ => (),
         };
-    } else if valid_request.resource == USERS_ROUTE && valid_request.id.is_none() {
+    }
+    // Users
+    else if valid_request.resource == USERS_ROUTE && valid_request.id.is_none() {
         match valid_request.method {
             HttpMethod::POST => {
                 return Response::response_from_body(users::create_user(valid_request.body, db))
             }
-            HttpMethod::OPTIONS => {
-                return Ok(Response {
-                    body: "".to_string(),
-                    headers: http::build_options_response_headers(vec![
-                        HttpMethod::OPTIONS,
-                        HttpMethod::POST,
-                    ]),
-                    status: "200 OK".to_string(),
-                });
-            }
-
             _ => (),
         }
-    } else if valid_request.resource == RRR_ROUTE {
-        if let Some(_) = valid_request.id {
-            let sub_resource = valid_request.sub_resource.as_deref();
-
-            match sub_resource {
-                Some(RRR_PLAYERS_ROUTE) => match valid_request.method {
-                    HttpMethod::OPTIONS => {
-                        return Ok(Response {
-                            body: "".to_string(),
-                            headers: http::build_options_response_headers(vec![
-                                HttpMethod::OPTIONS,
-                                HttpMethod::POST,
-                                HttpMethod::DELETE,
-                            ]),
-                            status: "200 OK".to_string(),
-                        });
-                    }
-                    _ => (),
-                },
-                _ => (),
-            }
-        }
-    };
+    }
 
     //
     // Routes with auth

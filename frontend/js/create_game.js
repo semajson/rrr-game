@@ -34,4 +34,4 @@ function createGame(event) {
     });
 }
 
-create_game_button.addEventListener("submit", joinGame);
+create_game_button.addEventListener("click", createGame);
