@@ -29,7 +29,7 @@ function createGame(event) {
     })
     .then((data) => {
       // console.log(data);
-      localStorage.setItem("initialMap", JSON.stringify(data));
+      localStorage.setItem("initialGamestate", JSON.stringify(data));
 
       window.location.replace("/game.html");
     })
