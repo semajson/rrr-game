@@ -9,6 +9,7 @@ use std::{collections::HashMap, sync::Arc};
 
 pub const TILE_GRASS: char = 'G';
 pub const TILE_ROCK: char = 'R';
+pub const TILE_WATER: char = 'W';
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GamestateChunk {
@@ -25,7 +26,21 @@ impl GamestateChunk {
         username: &str,
         user_coord: Option<coord::UserCoord>,
     ) -> GamestateChunk {
-        let terrain = vec![vec![TILE_GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
+        let mut terrain = vec![vec![TILE_GRASS; CHUNK_LENGTH]; CHUNK_LENGTH];
+
+        let mut rng = rand::thread_rng();
+        for row in terrain.iter_mut() {
+            for i in 0..row.len() {
+                let y: f64 = rng.gen();
+
+                if y < 0.1 {
+                    row[i] = TILE_WATER;
+                } else if y > 0.9 {
+                    row[i] = TILE_ROCK;
+                }
+            }
+        }
+
         let mut users = HashMap::new();
 
         if let Some(user_coord) = user_coord {
