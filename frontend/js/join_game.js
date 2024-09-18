@@ -30,7 +30,7 @@ function joinGame(event) {
     })
     .then((data) => {
       console.log(data);
-      //   sessionStorage.setItem("token", data.access_token);
+      localStorage.setItem("initialMap", data);
       window.location.replace("/menu.html");
     })
     .catch((error) => {

@@ -28,8 +28,9 @@ function createGame(event) {
       return response.json();
     })
     .then((data) => {
-      console.log(data);
-      // sessionStorage.setItem("token", data.access_token);
+      // console.log(data);
+      localStorage.setItem("initialMap", JSON.stringify(data));
+
       window.location.replace("/game.html");
     })
     .catch((error) => {
