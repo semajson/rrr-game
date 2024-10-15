@@ -1,25 +1,33 @@
 const tileSize = 16;
 
 // Setup
-let initial_gamestate = localStorage.getItem("initialGamestate");
-initial_gamestate = JSON.parse(initial_gamestate);
-// console.log(JSON.stringify(initial_gamestate));
+let gameState = localStorage.getItem("initialGamestate");
+gameState = JSON.parse(gameState);
+// console.log(JSON.stringify(gameState));
 const canvas = document.getElementById("gameCanvas");
 const context = canvas.getContext("2d");
-context.canvas.width =
-  tileSize * initial_gamestate.visible_gamestate.terrain[0].length;
-context.canvas.height =
-  tileSize * initial_gamestate.visible_gamestate.terrain.length;
+context.canvas.width = tileSize * gameState.visible_gamestate.terrain[0].length;
+context.canvas.height = tileSize * gameState.visible_gamestate.terrain.length;
 
 // Main loop
 loadGameImages().then((gameImages) => {
-  drawTerrain(initial_gamestate.visible_gamestate.terrain, gameImages);
-  drawUser(
-    initial_gamestate.user_coord,
-    initial_gamestate.top_left_visible_coord,
-    gameImages
-  );
+  // Draw initial game (todo might be bad)
+  drawTerrain(gameState.visible_gamestate.terrain, gameImages);
+  drawUser(gameState.user_coord, gameState.top_left_visible_coord, gameImages);
+
+  setInterval(gameTick, 3000);
 });
+
+async function gameTick() {
+  console.log("Game tick");
+
+  gameState = await getGameState();
+  console.log("gamestate is " + gameState);
+
+  console.log();
+  drawTerrain(gameState.visible_gamestate.terrain, gameImages);
+  drawUser(gameState.user_coord, gameState.top_left_visible_coord, gameImages);
+}
 
 function loadGameImages() {
   const gameImages = {
@@ -80,4 +88,41 @@ function drawUser(userCoord, topLeftCoord, gameImages) {
     tileSize,
     tileSize
   );
+}
+
+async function getGameState() {
+  const token = sessionStorage.getItem("token");
+
+  const response = await fetch(
+    "http://localhost:7878/rrr-game/" +
+      gameState.game_id +
+      "?x=" +
+      gameState.user_coord.x +
+      "&y=" +
+      gameState.user_coord.y,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+    }
+  );
+  const data = await response.json();
+
+  return data;
+  // then((response) => {
+  //   console.log(response);
+  //   if (!response.ok) {
+  //     response.json().then((data) => {
+  //       console.error("Error body: " + JSON.stringify(data));
+  //       alert("Error: " + data.error_message);
+  //     });
+  //     throw new Error(
+  //       "status: " + response.status + ", errorcode: " + response.statusText
+  //     );
+  //   }
+
+  //   return response.json();
+  // });
 }
