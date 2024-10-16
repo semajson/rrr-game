@@ -3,7 +3,7 @@ const tileSize = 16;
 // Setup
 let gameState = localStorage.getItem("initialGamestate");
 gameState = JSON.parse(gameState);
-// console.log(JSON.stringify(gameState));
+
 const canvas = document.getElementById("gameCanvas");
 const context = canvas.getContext("2d");
 context.canvas.width = tileSize * gameState.visible_gamestate.terrain[0].length;
@@ -22,7 +22,7 @@ async function gameTick() {
   console.log("Game tick");
 
   gameState = await getGameState();
-  console.log("gamestate is " + gameState);
+  console.log("gamestate is: " + JSON.stringify(gameState));
 
   console.log();
   drawTerrain(gameState.visible_gamestate.terrain, gameImages);
@@ -111,18 +111,4 @@ async function getGameState() {
   const data = await response.json();
 
   return data;
-  // then((response) => {
-  //   console.log(response);
-  //   if (!response.ok) {
-  //     response.json().then((data) => {
-  //       console.error("Error body: " + JSON.stringify(data));
-  //       alert("Error: " + data.error_message);
-  //     });
-  //     throw new Error(
-  //       "status: " + response.status + ", errorcode: " + response.statusText
-  //     );
-  //   }
-
-  //   return response.json();
-  // });
 }
