@@ -53,14 +53,15 @@ fn process_valid_request(
         ) {
             (SESSIONS_ROUTE, None, None) => Some(vec![HttpMethod::OPTIONS, HttpMethod::POST]),
             (USERS_ROUTE, None, None) => Some(vec![HttpMethod::OPTIONS, HttpMethod::POST]),
+            (RRR_ROUTE, None, None) => {
+                Some(vec![HttpMethod::OPTIONS, HttpMethod::POST, HttpMethod::GET])
+            }
+            (RRR_ROUTE, Some(_), None) => Some(vec![HttpMethod::OPTIONS, HttpMethod::GET]),
             (RRR_ROUTE, Some(_), Some(RRR_PLAYERS_ROUTE)) => Some(vec![
                 HttpMethod::OPTIONS,
                 HttpMethod::POST,
                 HttpMethod::DELETE,
             ]),
-            (RRR_ROUTE, None, None) => {
-                Some(vec![HttpMethod::OPTIONS, HttpMethod::POST, HttpMethod::GET])
-            }
             (_, _, _) => None,
         };
 
