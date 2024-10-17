@@ -7,6 +7,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 
+use super::coord::UserCoord;
+
 pub fn get_visible_gamestate(
     user_coord: &coord::UserCoord,
     username: String,
@@ -70,6 +72,7 @@ pub fn get_gamestate(
 pub struct VisibleGamestate {
     terrain: Vec<Vec<char>>,
     users: HashMap<String, coord::UserCoord>,
+    top_left_coord: UserCoord,
 }
 
 fn create_visible_gamestate(
@@ -120,7 +123,14 @@ fn create_visible_gamestate(
     // Bottom
     terrain.extend(get_new_rows(1));
 
-    VisibleGamestate { terrain, users }
+    // Get top left
+    let top_left_coord = coord::get_top_left_visible_coord(&centre, CHUNK_LENGTH);
+
+    VisibleGamestate {
+        terrain,
+        users,
+        top_left_coord,
+    }
 }
 
 #[test]
@@ -214,7 +224,8 @@ fn test_create_visible_gamestate() {
                 vec!['n', 'o', 'p', 'q', 'r', 's'],
                 vec!['N', 'O', 'P', 'Q', 'R', 'S'],
             ],
-            users: HashMap::new()
+            users: HashMap::new(),
+            top_left_coord: UserCoord { x: 77, y: 77 }
         }
     )
 }

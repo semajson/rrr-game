@@ -75,7 +75,6 @@ impl GamestateChunk {
 struct CreateGameRsp {
     game_id: String,
     user_coord: coord::UserCoord,
-    top_left_visible_coord: coord::UserCoord,
     visible_gamestate: get::VisibleGamestate, // Todo - decide if want to do this or not
 }
 
@@ -138,12 +137,9 @@ pub fn create_game(username: String, db: Arc<impl Database>) -> Result<String, H
 
     // Todo - consider if should hit db here - maybe just to be sure it was written?
     let visible_gamestate = get::get_visible_gamestate(&user_coord, username, &game_id, db)?;
-    let top_left_visible_coord =
-        coord::get_top_left_visible_coord(&centre_chunk_coord, CHUNK_LENGTH);
     let rsp = CreateGameRsp {
         game_id,
         user_coord,
-        top_left_visible_coord,
         visible_gamestate,
     };
     Ok(serde_json::to_string(&rsp).unwrap())

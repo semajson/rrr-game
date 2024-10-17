@@ -1,5 +1,5 @@
 use crate::{
-    http::{self, HttpError, HttpErrorCode, HttpMethod, Request, Response},
+    http::{self, HttpError, HttpErrorCode, HttpMethod, Response},
     jwt, rrr_game, users, Database,
 };
 use std::sync::Arc;
