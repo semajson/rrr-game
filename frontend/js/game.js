@@ -1,32 +1,37 @@
 const tileSize = 16;
 
 // Setup
-let gameState = localStorage.getItem("initialGamestate");
-gameState = JSON.parse(gameState);
+const username = sessionStorage.getItem("username");
+const create_game_rsp = JSON.parse(localStorage.getItem("initialGamestate"));
+// console.log("create_game_rsp is: " + JSON.stringify(create_game_rsp));
+const initial_user_coord = create_game_rsp.user_coord;
+const game_id = create_game_rsp.game_id;
+let gamestate = create_game_rsp.visible_gamestate;
 
 const canvas = document.getElementById("gameCanvas");
 const context = canvas.getContext("2d");
-context.canvas.width = tileSize * gameState.visible_gamestate.terrain[0].length;
-context.canvas.height = tileSize * gameState.visible_gamestate.terrain.length;
+context.canvas.width = tileSize * gamestate.terrain[0].length;
+context.canvas.height = tileSize * gamestate.terrain.length;
+let gameImages = null;
 
-// Main loop
-loadGameImages().then((gameImages) => {
+// Entry point
+loadGameImages().then((foundGameImages) => {
+  gameImages = foundGameImages;
   // Draw initial game (todo might be bad)
-  drawTerrain(gameState.visible_gamestate.terrain, gameImages);
-  drawUser(gameState.user_coord, gameState.top_left_visible_coord, gameImages);
+  drawTerrain(gamestate.terrain, gameImages);
+  drawUser(initial_user_coord, gamestate.top_left_coord, gameImages);
 
+  // Setup regular tick
   setInterval(gameTick, 3000);
 });
 
+// Main loop
 async function gameTick() {
   console.log("Game tick");
+  gamestate = await getGamestate();
 
-  gameState = await getGameState();
-  console.log("gamestate is: " + JSON.stringify(gameState));
-
-  console.log();
-  drawTerrain(gameState.visible_gamestate.terrain, gameImages);
-  drawUser(gameState.user_coord, gameState.top_left_visible_coord, gameImages);
+  drawTerrain(gamestate.terrain, gameImages);
+  drawUser(gamestate.users[username], gamestate.top_left_coord, gameImages);
 }
 
 function loadGameImages() {
@@ -73,12 +78,9 @@ function drawTerrain(board, gameImages) {
 }
 
 function drawUser(userCoord, topLeftCoord, gameImages) {
+  console.log("User coord is " + JSON.stringify(gamestate));
   const row = userCoord.x - topLeftCoord.x;
   const col = userCoord.y - topLeftCoord.y;
-
-  console.log("col (x) is " + col);
-  console.log("row (y) is " + row);
-
   const userImage = gameImages["user"];
 
   context.drawImage(
@@ -90,16 +92,24 @@ function drawUser(userCoord, topLeftCoord, gameImages) {
   );
 }
 
-async function getGameState() {
+async function getGamestate() {
   const token = sessionStorage.getItem("token");
+
+  // This feels wrong, as getting user coord from the old gamestate!
+  // This will break when go off edge of map.
+  // Maybe want to store a local usercoord?
+  const users = gamestate.users;
+  const user_coord = users[username];
+
+  console.log("Found user coord is :" + user_coord.x + ", " + user_coord.y);
 
   const response = await fetch(
     "http://localhost:7878/rrr-game/" +
-      gameState.game_id +
+      game_id +
       "?x=" +
-      gameState.user_coord.x +
+      user_coord.x +
       "&y=" +
-      gameState.user_coord.y,
+      user_coord.y,
     {
       method: "GET",
       headers: {

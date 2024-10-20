@@ -40,6 +40,8 @@ function doLogin(event) {
     .then((data) => {
       console.log(data);
       sessionStorage.setItem("token", data.access_token);
+      sessionStorage.setItem("username", username);
+      console.log("Js9 setting username to + ", username);
       window.location.replace("/menu.html");
     })
     .catch((error) => {
