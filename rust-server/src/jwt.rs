@@ -12,10 +12,12 @@ struct Claims {
     exp: u64,
 }
 
+const ONE_DAY_TIMEOUT_S: u64 = 86400;
+
 pub fn create_jwt(username: &str, secret: &String) -> String {
     let my_claims = Claims {
         sub: username.to_owned(),
-        exp: get_current_timestamp(),
+        exp: get_current_timestamp() + ONE_DAY_TIMEOUT_S,
     };
 
     encode(
