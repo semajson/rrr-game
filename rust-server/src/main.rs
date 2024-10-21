@@ -1,3 +1,4 @@
+use log::warn;
 use rust_book_server_example::{process_request, Database, LocalDatabase, ThreadPool};
 use std::str;
 use std::{
@@ -9,11 +10,12 @@ use std::{
 fn main() {
     env_logger::init();
 
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let port = 7878;
+    let binding_address = format!("127.0.0.1:{:?}", port);
+    warn!("Listening on port {:?}", port);
+    let listener = TcpListener::bind(binding_address).unwrap();
     let pool = ThreadPool::new(4);
     let db = Arc::new(LocalDatabase::new());
-
-    db.set("test".to_string(), "1".to_string());
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
