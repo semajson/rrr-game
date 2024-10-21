@@ -2,6 +2,8 @@ use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use log::{debug, info};
+
 #[derive(Debug, PartialEq)]
 pub enum HttpMethod {
     GET,
@@ -116,7 +118,14 @@ pub struct Request {
 
 impl Request {
     pub fn new(request: String) -> Option<Request> {
-        println!("{:?}\n ", request); // todo logging
+        debug!("{:?}\n", request); //
+        info!(
+            "{:?} ",
+            request
+                .chars()
+                .take_while(|&ch| ch != '\r')
+                .collect::<String>()
+        );
 
         let request = request
             .lines()
@@ -237,7 +246,15 @@ impl Response {
 
         response_raw += &format!("Content-Length: {length}\r\n\r\n{response_body}");
 
-        println!("{:?}\n", response_raw); // Todo - logging
+        debug!("{:?}", response_raw);
+        info!(
+            "{:?}",
+            response_raw
+                .chars()
+                .take_while(|&ch| ch != '\r')
+                .collect::<String>()
+        );
+
         response_raw
     }
 }

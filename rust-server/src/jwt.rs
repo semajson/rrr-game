@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use jsonwebtoken::{
     decode, encode, get_current_timestamp, Algorithm, DecodingKey, EncodingKey, Validation,
 };
+use log::trace;
 
 use crate::http::{HttpError, HttpErrorCode};
 
@@ -29,8 +30,8 @@ pub fn create_jwt(username: &str, secret: &String) -> String {
 }
 
 pub fn validate_jwt(token: &str, secret: &String) -> Result<String, HttpError> {
-    println!("Secret {:?}\n", secret);
-    println!("token {:?}\n", token);
+    trace!("Secret {:?}", secret); //todo logging
+    trace!("token {:?}", token);
 
     // Validate token
     match decode::<Claims>(

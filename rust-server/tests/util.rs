@@ -17,8 +17,6 @@ Content-Length: {body_length}\r
 {body}"
     );
 
-    // println!("Sending request:\n   {:?}\n", request);
-
     request
 }
 
@@ -29,7 +27,6 @@ pub struct Response {
 }
 
 pub fn parse_response(response: String) -> Response {
-    // println!("Received response:\n  {:?}\n", response);
     let re = Regex::new(
         r"(?s)HTTP/1.1 (?<status_code>[0-9]+) (?<status_text>[a-zA-Z ]+).*\r\n\r\n(?<body>.*)",
     )

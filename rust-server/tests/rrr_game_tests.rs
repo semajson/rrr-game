@@ -5,7 +5,6 @@ use std::sync::Arc;
 mod util;
 
 fn get_game_id(body: &String) -> String {
-    println!("");
     let re = Regex::new("game_id\":\"(?<game_id>[a-zA-Z0-9]{7})\"").unwrap();
 
     assert_eq!(re.captures_iter(&body).count(), 1);

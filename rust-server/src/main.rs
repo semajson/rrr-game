@@ -7,6 +7,8 @@ use std::{
 };
 
 fn main() {
+    env_logger::init();
+
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
     let db = Arc::new(LocalDatabase::new());
