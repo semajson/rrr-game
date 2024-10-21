@@ -12,6 +12,7 @@ const canvas = document.getElementById("gameCanvas");
 const context = canvas.getContext("2d");
 context.canvas.width = tileSize * gamestate.terrain[0].length;
 context.canvas.height = tileSize * gamestate.terrain.length;
+
 let gameImages = null;
 
 // Entry point
@@ -21,8 +22,8 @@ loadGameImages().then((foundGameImages) => {
   drawTerrain(gamestate.terrain, gameImages);
   drawUser(initial_user_coord, gamestate.top_left_coord, gameImages);
 
-  // Setup regular tick
-  setInterval(gameTick, 3000);
+  // Setup regular game tick
+  setInterval(gameTick, 250);
 });
 
 // Main loop
@@ -78,7 +79,6 @@ function drawTerrain(board, gameImages) {
 }
 
 function drawUser(userCoord, topLeftCoord, gameImages) {
-  console.log("User coord is " + JSON.stringify(gamestate));
   const row = userCoord.x - topLeftCoord.x;
   const col = userCoord.y - topLeftCoord.y;
   const userImage = gameImages["user"];
