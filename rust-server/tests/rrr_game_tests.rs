@@ -43,9 +43,9 @@ fn test_create_rrr_game() {
     assert_eq!(response.status_code, 200);
     assert!(response.body.is_some());
     assert_eq!(get_game_id(&response.body.clone().unwrap()).len(), 7);
-    assert!(response.body.clone().unwrap().contains("\"terrain\":[["));
+    assert!(response.body.clone().unwrap().contains("\"terrain\":[\""));
     assert!(response.body.clone().unwrap().contains("\"users\":{"));
-    assert!(response.body.clone().unwrap().contains("\"G\",\"G\","));
+    assert!(response.body.clone().unwrap().contains("GG"));
 }
 
 #[test]
@@ -82,9 +82,9 @@ fn test_get_gamestate() {
     // Verify
     assert_eq!(response.status_code, 200);
     assert!(response.body.is_some());
-    assert!(response.body.clone().unwrap().contains("\"terrain\":[["));
+    assert!(response.body.clone().unwrap().contains("\"terrain\":[\""));
     assert!(response.body.clone().unwrap().contains("\"users\":{"));
-    assert!(response.body.clone().unwrap().contains("\"G\",\"G\","));
+    assert!(response.body.clone().unwrap().contains("GG"));
     assert_eq!(response.status_code, 200);
 }
 

@@ -71,7 +71,7 @@ impl GamestateChunk {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 struct CreateGameRsp {
     game_id: String,
     user_coord: coord::UserCoord,

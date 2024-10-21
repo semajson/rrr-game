@@ -4,7 +4,8 @@ use crate::{
     Database,
 };
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Serializer};
+use serde_with::{serde_as, SerializeAs};
 use std::{collections::HashMap, sync::Arc};
 
 use super::coord::UserCoord;
@@ -68,11 +69,29 @@ pub fn get_gamestate(
     Ok(serde_json::to_string(&visible_gamestate).unwrap())
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde_as]
+#[derive(PartialEq, Eq, Debug, Serialize)]
 pub struct VisibleGamestate {
-    terrain: Vec<Vec<char>>,
     users: HashMap<String, coord::UserCoord>,
     top_left_coord: UserCoord,
+    #[serde_as(as = "Vec<TerrainLine>")]
+    terrain: Vec<Vec<char>>,
+}
+
+// Terrain line is only used for serialization and
+// maybe for deserialization.
+#[serde_as]
+struct TerrainLine();
+
+impl SerializeAs<Vec<char>> for TerrainLine {
+    fn serialize_as<S>(source: &Vec<char>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let output: String = source.iter().collect();
+
+        serializer.serialize_str(&output)
+    }
 }
 
 fn create_visible_gamestate(
